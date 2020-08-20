@@ -13,6 +13,8 @@ numpy = "*"
 joblib = "*"
 sklearn = "*"
 tensorflow = "*"
+fastapi = "*"
+uvicorn = "*"
 
 [requires]
 python_version = "3.8"
