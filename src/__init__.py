@@ -1,10 +1,12 @@
 # Entry point for spoti app
-# To run app localy and generate access to data run 
+# To run app localy and generate access to data run
 # the following line of code int he terminal:
-# FLASK_APP=src:APP flask run
+# running with FastAPI this time
+# uvicorn main:app --reload
 
-# Need to actually create an app.py file that generates the app 
+'''Entry point for FastAPI application.'''
 
-# from .app import create_app  # imports the app creation function
+from .app import create_app  # imports the app creation function
 
-# APP = create_app()  # should generate app to be ran
+# Initialize FastAPI app
+APP = create_app()
