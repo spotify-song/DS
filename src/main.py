@@ -7,14 +7,13 @@ from models import predict
 
 app = FastAPI(
              tltle='ML API',
-             description='Lorem ipsum',
+             description='API page for Spotify Playlist generator',
              version='0.1',
              docs_url='/',
              )
 
 
 app.include_router(predict.router)
-app.include_router(visualize.router)
 
 app.add_middleware(
                   CORSMiddleware,

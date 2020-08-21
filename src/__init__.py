@@ -6,7 +6,6 @@
 
 '''Entry point for FastAPI application.'''
 
-from .app import create_app  # imports the app creation function
+# imports the app creation function
 
 # Initialize FastAPI app
-APP = create_app()
