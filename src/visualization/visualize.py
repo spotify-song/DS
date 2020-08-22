@@ -16,4 +16,4 @@ async def viz(user_ids: str):
     ### Reponse
     URI code to navigate user to the playlist generated.
     '''
-    return None
+    return user_ids

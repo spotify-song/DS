@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from visualization import visualize
-from models import predict
+from models import playlist_model
 
 app = FastAPI(
              tltle='ML API',
@@ -13,7 +13,7 @@ app = FastAPI(
              )
 
 
-app.include_router(predict.router)
+app.include_router(playlist_model.router)
 
 # may potentially be used to return data
 app.include_router(visualize.router)
