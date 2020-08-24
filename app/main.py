@@ -18,6 +18,7 @@ app.include_router(playlist_model.router)
 # may potentially be used to return data
 app.include_router(visualize.router)
 
+
 app.add_middleware(
                   CORSMiddleware,
                   allow_origins=['*'],

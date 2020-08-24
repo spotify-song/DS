@@ -5,7 +5,13 @@ from fastapi import APIRouter
 import pandas as pd
 from pydantic import BaseModel, Field, validator
 from typing import List
-# from the users class module import users
+# ML pkg
+# import joblib
+# import os
+
+# Vectorizer
+# some model
+# opening file and loading it
 
 
 router = APIRouter()
@@ -27,9 +33,22 @@ class PlaylistURI(BaseModel):
     playlist_uri: str = Field(..., example='a long string of digits')
 
 
+# @router.get('/index')
+# async def index():
+#     return {'text': "hello API builders"}
+#
+# @router.get('/items/{name}')
+# async def get_items(name):
+#     return {'name': name}
+#
+# @router.get('predict/{name}')
+# async def predict(name):
+#     vectorizedd_name = 'some model'
+    # return {'model prediction': model_prediction}
+
 # route to get user IDs
 @router.get('/users/{user_id_1,user_id_2}')
-async def users(user_id_1: User, user_id_2: User):
+async def users(user_id_1, user_id_2):
     '''
     This function takes in a series of user IDs
     ### Path Parameter
@@ -37,8 +56,19 @@ async def users(user_id_1: User, user_id_2: User):
 
     ### Response
     'playlist_uri': string of alphanumeric values that generate a playlist
+
+    ### Pseudo Code
+    if user_id 1 and 2 exist:
+        Run user 1 and 2 through model
+        return palylist uri
+    else:
+        Generate spotify token for user 1, and
+        request user 1 to send link to user 2
+        Generate token for user 2
+        return playlist uri
     '''
-    return {'user_ids': [user_id_1, user_id_2]}
+    return {"user_ids": [user_id_1, user_id_2],
+            "playlist_uri": f"{user_id_1} and {user_id_2}'s plylist baby"}
 
 
 @router.post('/uri/')
