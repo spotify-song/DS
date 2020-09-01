@@ -7,7 +7,7 @@ from models import playlist_model
 
 app = FastAPI(
              tltle='ML API',
-             description='API page for Spotify Playlist generator',
+             description='API for Spotify playlist generator.  The playlists are generated from two users, and their most related interests.',
              version='0.1',
              docs_url='/',
              )
@@ -16,7 +16,9 @@ app = FastAPI(
 app.include_router(playlist_model.router)
 
 # may potentially be used to return data
-app.include_router(visualize.router)
+app.include_router(.router)
+
+
 
 
 app.add_middleware(
