@@ -42,18 +42,22 @@ class User:
     
     def auth_user_lib_read(self, user=None, scope=None):
         '''
-        This function will gather all of the music in the library of a single user.
+        This method will gather all of the music in the library of a single user.
         
         Input: 
             - user: The Spotify username as a string
             - scope: Is the authentication requirement necessitated by the program to proceed
+            
+        Output:
+            - not sure yet
         '''
         client_secret = self.client_secret
         scope = self.lib_read_scope
         client_id = self.client_id
         uri = self.uri
         user = user
-        
+
+        # Generates a token for the given user
         token = util.prompt_for_user_token(
             username=user,
             client_id=client_id,
@@ -62,8 +66,35 @@ class User:
             rediret_uri=uri
         )
         
+        # Starts session with current user
         spot_session = spotipy.Spotify(
             auth=token
         )
         
+        # Generates a list of all the song IDs in a user's library
         
+        
+        def auth_user_top_read(self, user=None, scope=None):
+            '''
+            This method gathers the user's top 50 songs
+            
+            Input:
+                - user: The Spotify username as a string of alphanumeric values
+                - scope: Is the authentication requirement necessitated byt the program to proceed
+            
+            Output:
+                - JSON: Containing song audio features for a series of songs for a given user
+            '''
+            
+            
+        def aut_user_playlist_read(self, user=None, scope=None):
+            '''
+            This method reads through the user's playlists and obtains all of the tracks
+            
+            Input:
+                - user: The Spotify username as a string of alphanumeric values
+                - scope: Is the authentication requirement necessitated byt the program to proceed
+            
+            Output:
+                - JSON: Containing song audio features for a series of songs for a given user
+            '''
