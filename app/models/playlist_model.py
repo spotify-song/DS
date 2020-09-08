@@ -1,5 +1,7 @@
 import logging
 import random
+import os
+print(os.getcwd())
 
 from fastapi import APIRouter
 import pandas as pd
@@ -8,11 +10,13 @@ from typing import List
 
 # ML pkg
 # import joblib
-# import os
+
 
 # Vectorizer
 # some model
 # opening file and loading it
+
+log = logging.getLogger(__name__)
 
 
 router = APIRouter()
