@@ -5,6 +5,7 @@ from fastapi import APIRouter
 import pandas as pd
 from pydantic import BaseModel, Field, validator
 from typing import List
+
 # ML pkg
 # import joblib
 # import os
@@ -67,6 +68,8 @@ async def users(user_id_1, user_id_2):
         Generate token for user 2
         return playlist uri
     '''
+    
+    
     return {"user_ids": [user_id_1, user_id_2],
             "playlist_uri": f"{user_id_1} and {user_id_2}'s plylist baby"}
 

@@ -16,7 +16,7 @@ app = FastAPI(
 app.include_router(playlist_model.router)
 
 # may potentially be used to return data
-app.include_router(.router)
+# app.include_router(.router)
 
 
 

@@ -26,7 +26,6 @@ class User:
     accs_token = None     # Uses credentials access token (can be used for refresh tokens)
     refresh_token = None  # Refresh token obtained from accs_token from client creds
     
-    
     def __init__(self):
         
         load_dotenv()
@@ -57,44 +56,50 @@ class User:
         scope = self.user_top_scope
         client_id = self.client_id
         uri = self.uri
-        user = user.lstrip('spotify:user:')
+        user = user
         
-        # OAuth Credentials
-        spot_cc = spotipy.oauth2.SpotifyOAuth(username=user,
-                                              client_id=cilent_id,
-                                              client_secret=client_secret,
-                                              scope=scope,
-                                              redirect_uri=uri)
+        if user == None:
+            raise Exception("where the fuck the user name at bruh")
+        else:
+            user = user.lstrip('spotify:user:')
         
-        # Token access for given user, given scope
-        top_trx_accs_token = spot_cc.get_access_token(as_dict=True)
+            # OAuth Credentials
+            spot_cc = spotipy.oauth2.SpotifyOAuth(username=user,
+                                                  client_id=client_id,
+                                                  client_secret=client_secret,
+                                                  scope=scope,
+                                                  redirect_uri=uri)
+
+            # Token access for given user, given scope
+            top_trx_accs_token = spot_cc.get_access_token(as_dict=True)
+
+            # Starts session with current user
+            top_trx_session = spotipy.Spotify(auth=top_trx_accs_token)
+
+            # Generates a list of all the song IDs in a user's library
+            top_trx = top_trx_session.current_user_top_tracks(limit=50, time_range='medium_range')
+            top_50_trx_ids = [top_tracks['items'][x]['id'] for x in range(len(top_tracks['items']))]
+
+            return {
+                'Top Tracks Sesh': top_trx_session,
+                'User': user,
+                'Top Track IDs': top_50_trx_ids
+            }
         
-        # Starts session with current user
-        top_trx_session = spotipy.Spotify(auth=top_trx_accs_token)
-        
-        # Generates a list of all the song IDs in a user's library
-        top_trx = top_trx_session.current_user_top_tracks(limit=50, time_range='medium_range')
-        top_50_trx_ids = [top_tracks['items'][x]['id'] for x in range(len(top_tracks['items']))]
-        
-        return {
-            'Top Tracks Sesh': top_trx_session,
-            'User': user,
-            'Top Track IDs': top_50_trx_ids
-        }
-        
-        def playlist_generator(self, user1=None, user2=None):
-            '''
-            This method generates a playlist from two users that have provided access to the system
+    def playlist_generator(self, user1=None, user2=None):
+        '''
+        This method generates a playlist from two users that have provided access to the system
             
-            Input:
-                - user1/2:  User names should be a string of characters, if one of the two users is not provided
-                            If a user does not provide app token access, spotify will also be used to generate recommendations
-            Output:
-                - URI: A spotify link to the generated playlist given the two users.
-            '''
-            if user1 == None and user2 == None:
-                raise Exception('You need to provide at least one Username')
-            elif user1 != None and user2 != None:
+        Input:
+            - user1/2:
+                User names should be a string of characters, if one of the two users is not provided
+                If a user does not provide app token access, spotify will also be used to generate recommendations
+        Output:
+            - URI: A spotify link to the generated playlist given the two users.
+        '''
+        if user1 == None and user2 == None:
+            raise Exception('You need to provide at least one Username')
+        elif user1 != None and user2 != None:
                 # Here is where we need to query the DB to see if the user exists
                 
                 
@@ -138,4 +143,4 @@ class User:
             
             
             
-#             '''Note, you can use recommendations feature to provide the best possible reccomendations for users, include the target value using both of the  users total top favorite tracks averages'''
+             '''Note, you can use recommendations feature to provide the best possible reccomendations for users, include the target value using both of the  users total top favorite tracks averages'''
