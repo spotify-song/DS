@@ -15,9 +15,9 @@ from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
 class User:
 
-    # lib_read_scope = 'user-library-read'           # Gets user's saved tracks
-    # user_top_scope = 'user-top-read'               # Gets user's top saved tracks/artists
-    # pub_playlist_scope = 'playlist-modify-public'  # Creates playlist, adds items to playlist
+    lib_read_scope = 'user-library-read'  # Gets user's saved tracks
+    user_top_scope = 'user-top-read'      # Gets user's top saved tracks/artist
+    pub_playlist_scope = 'playlist-modify-public'  # Creates/adds to playlist
 
     spot_creds = None     # Gathers credentials for song data
     spot_session = None   # Starts a spotify session
@@ -57,43 +57,38 @@ class User:
         scope = self.user_top_scope
         client_id = self.client_id
         uri = self.uri
-        user = user
+        user = user.lstrip('spotify:user:')
 
-        if user is None:
-            raise Exception("where the fuck the user name at bruh")
-        else:
-            user = user.lstrip('spotify:user:')
+        # OAuth Credentials
+        spot_cc = spotipy.oauth2.SpotifyOAuth(username=user,
+                                              client_id=client_id,
+                                              client_secret=client_secret,
+                                              scope=scope,
+                                              redirect_uri=uri)
 
-            # OAuth Credentials
-            spot_cc = spotipy.oauth2.SpotifyOAuth(username=user,
-                                                  client_id=client_id,
-                                                  client_secret=client_secret,
-                                                  scope=scope,
-                                                  redirect_uri=uri)
+        # Token access for given user, given scope
+        top_trx_accs_token = spot_cc.get_access_token(as_dict=True)
 
-            # Token access for given user, given scope
-            top_trx_accs_token = spot_cc.get_access_token(as_dict=True)
+        # Starts session with current user
+        top_trx_session = spotipy.Spotify(auth=top_trx_accs_token)
 
-            # Starts session with current user
-            top_trx_session = spotipy.Spotify(auth=top_trx_accs_token)
-
-            # Generates a list of all the song IDs in a user's library
-            top_trx = top_trx_session.current_user_top_tracks(
-                                                    limit=50,
-                                                    time_range='medium_range'
+        # Generates a list of all the song IDs in a user's library
+        top_trx = top_trx_session.current_user_top_tracks(
+                                                limit=50,
+                                                time_range='medium_range'
+                                                )
+        top_50_trx_ids = [top_tracks['items'][x]['id'] for x in range(
+                                                len(
+                                                    top_tracks['items']
                                                     )
-            top_50_trx_ids = [top_tracks['items'][x]['id'] for x in range(
-                                                    len(
-                                                        top_tracks['items']
-                                                        )
-                                                    )
-                              ]
+                                                )
+                          ]
 
-            return {
-                'Top Tracks Sesh': top_trx_session,
-                'User': user,
-                'Top Track IDs': top_50_trx_ids
-            }
+        return {
+            'Top Tracks Sesh': top_trx_session,
+            'User': user,
+            'Top Track IDs': top_50_trx_ids
+        }
 
     def playlist_generator(self, user1=None, user2=None):
         '''
