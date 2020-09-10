@@ -15,10 +15,6 @@ from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
 class User:
 
-    lib_read_scope = 'user-library-read'  # Gets user's saved tracks
-    user_top_scope = 'user-top-read'      # Gets user's top saved tracks/artist
-    pub_playlist_scope = 'playlist-modify-public'  # Creates/adds to playlist
-
     spot_creds = None     # Gathers credentials for song data
     spot_session = None   # Starts a spotify session
     user_token = None     # Requests a token for a given user
@@ -31,13 +27,13 @@ class User:
 
         self.client_secret = getenv('SPOTIFY_CLIENT_SECRET')
         self.client_id = getenv('SPOTIFY_CLIENT_ID')
-        self.uri = getenv('uri')                             # URI should redirect to app site
-        self.pub_playlist_scope = 'playlist-modify-public'   # Creates playlist, adds items to playlist
-        self.lib_read_scope = 'user-library-read'            # Gets user's saved tracks
-        self.user_top_scope = 'user-top-read'                # Gets user's top saved tracks/artists
+        # redirects to app site
+        self.uri = getenv('uri')
+        # Creates/adds playlist; Gets saved tracks; top saved tracks/artists
+        self.scope = 'playlist-modify-public user-library-read user-top-read'
         self.user = None
 
-    def user_auth(self, user=None):
+    def user_top_50(self, user):
         '''
         This method will create the client credentials to query users for their
         tokens.
@@ -54,39 +50,53 @@ class User:
             - Top Track IDs: List of strings of the top 50 tracks for a user
         '''
         client_secret = self.client_secret
-        scope = self.user_top_scope
+        scope = self.scope
         client_id = self.client_id
         uri = self.uri
-        user = user.lstrip('spotify:user:')
+        user = user
 
-        # OAuth Credentials
+        # OAuth Credentials; only used when token is cached
         spot_cc = spotipy.oauth2.SpotifyOAuth(username=user,
                                               client_id=client_id,
                                               client_secret=client_secret,
                                               scope=scope,
                                               redirect_uri=uri)
+        # accs_token = spot_cc.get_access_token()
+
+        # Testing the util.prompt_for_user_token() method
+        top_trx_accs_token = util.prompt_for_user_token(
+                                            username=user,
+                                            # username='agustinvargas',
+                                            # username='gabriela_ayala19',
+                                            # username='dintherye',
+                                            client_id=client_id,
+                                            client_secret=client_secret,
+                                            scope=scope,
+                                            redirect_uri=uri)
+
+        spot_session = spotipy.Spotify(auth=top_trx_accs_token)
 
         # Token access for given user, given scope
-        top_trx_accs_token = spot_cc.get_access_token(as_dict=True)
+        token_info = spot_cc.get_access_token(as_dict=True)
 
         # Starts session with current user
-        top_trx_session = spotipy.Spotify(auth=top_trx_accs_token)
+        # top_trx_session = spotipy.Spotify(auth=top_trx_accs_token)
 
         # Generates a list of all the song IDs in a user's library
-        top_trx = top_trx_session.current_user_top_tracks(
+        top_trx = spot_session.current_user_top_tracks(
                                                 limit=50,
-                                                time_range='medium_range'
+                                                time_range='medium_term'
                                                 )
-        top_50_trx_ids = [top_tracks['items'][x]['id'] for x in range(
+        top_50_trx_ids = [top_trx['items'][x]['id'] for x in range(
                                                 len(
-                                                    top_tracks['items']
+                                                    top_trx['items']
                                                     )
                                                 )
                           ]
 
         return {
-            'Top Tracks Sesh': top_trx_session,
-            'User': user,
+            'Top Tracks tokens': # token_info,
+            'User': {user},
             'Top Track IDs': top_50_trx_ids
         }
 

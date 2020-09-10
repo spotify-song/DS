@@ -1,12 +1,12 @@
 import logging
 import random
 import os
-print(os.getcwd())
 
 from fastapi import APIRouter
 import pandas as pd
 from pydantic import BaseModel, Field, validator
 from typing import List
+
 
 # ML pkg
 # import joblib
@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 
 
 router = APIRouter()
+
 
 
 class User(BaseModel):
@@ -37,19 +38,6 @@ class PlaylistURI(BaseModel):
     '''The URIs that will be generated from the analysis'''
     playlist_uri: str = Field(..., example='a long string of digits')
 
-
-# @router.get('/index')
-# async def index():
-#     return {'text': "hello API builders"}
-#
-# @router.get('/items/{name}')
-# async def get_items(name):
-#     return {'name': name}
-#
-# @router.get('predict/{name}')
-# async def predict(name):
-#     vectorizedd_name = 'some model'
-    # return {'model prediction': model_prediction}
 
 # route to get user IDs
 @router.get('/users/{user_id_1,user_id_2}')
@@ -72,14 +60,13 @@ async def users(user_id_1, user_id_2):
         Generate token for user 2
         return playlist uri
     '''
-    
-    
+
     return {"user_ids": [user_id_1, user_id_2],
             "playlist_uri": f"{user_id_1} and {user_id_2}'s plylist baby"}
 
 
 @router.post('/uri/')
-async def URI(playlist_uri: PlaylistURI):
+async def auth():
     '''
     This function will return the playlist uri generated from the given users
     ### Path Parameter

@@ -7,7 +7,9 @@ from models import playlist_model
 
 app = FastAPI(
              tltle='ML API',
-             description='API for Spotify playlist generator.  The playlists are generated from two users, and their most related interests.',
+             description='API for Spotify playlist generator.  The playlists\
+                          are generated from two users, and their most related\
+                          interests.',
              version='0.1',
              docs_url='/',
              )
