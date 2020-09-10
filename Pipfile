@@ -14,6 +14,7 @@ joblib = "*"
 sklearn = "*"
 fastapi = "*"
 uvicorn = "*"
+psycopg2 = "*"
 
 [requires]
 python_version = "3.8"

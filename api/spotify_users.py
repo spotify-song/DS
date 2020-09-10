@@ -1,6 +1,6 @@
 # imports
 
-# import sys
+import sys
 import json
 import spotipy
 # import webbrowser
@@ -32,6 +32,7 @@ class User:
         # Creates/adds playlist; Gets saved tracks; top saved tracks/artists
         self.scope = 'playlist-modify-public user-library-read user-top-read'
         self.user = None
+        self.cache_path = ('../.user_cache')
 
     def user_top_50(self, user):
         '''
@@ -50,8 +51,9 @@ class User:
             - Top Track IDs: List of strings of the top 50 tracks for a user
         '''
         client_secret = self.client_secret
-        scope = self.scope
+        cache_path = self.cache_path
         client_id = self.client_id
+        scope = self.scope
         uri = self.uri
         user = user
 
@@ -59,6 +61,7 @@ class User:
         spot_cc = spotipy.oauth2.SpotifyOAuth(username=user,
                                               client_id=client_id,
                                               client_secret=client_secret,
+                                              cache_path=cache_path,
                                               scope=scope,
                                               redirect_uri=uri)
         # accs_token = spot_cc.get_access_token()
@@ -71,6 +74,7 @@ class User:
                                             # username='dintherye',
                                             client_id=client_id,
                                             client_secret=client_secret,
+                                            cache_path=cache_path,
                                             scope=scope,
                                             redirect_uri=uri)
 
@@ -95,7 +99,7 @@ class User:
                           ]
 
         return {
-            'Top Tracks tokens': # token_info,
+            'Top Tracks tokens': 'token_info',
             'User': {user},
             'Top Track IDs': top_50_trx_ids
         }
@@ -104,6 +108,10 @@ class User:
         '''
         This method generates a playlist from two users that have provided
         access to the system
+
+        Note: You can use recommendations feature to provide the best
+        possible reccomendations for users, include the target value using
+        both of the  users total top favorite tracks averages
 
         Input:
             - user1/2:
@@ -114,49 +122,6 @@ class User:
         Output:
             - URI: A spotify link to the generated playlist given the two users
         '''
-        if user1 is None and user2 is None:
-            raise Exception('You need to provide at least one Username')
-        elif user1 is not None and user2 is not None:
-            # Here is where we need to query the DB to see if the user exists
-
-            # def auth_user_lib_read(self, user=None, scope=None):
-            # '''
-            # This method will gather all of the music in the library of a single
-            # user.
-
-            # Input:
-            # - user: The Spotify username as a string
-            # - scope: Is the authentication requirement necessitated by the
-            # program to proceed
-
-            # Output:
-            # - not sure yet
-            # '''
-            # Generates a token for the given user with the 'user-lib-read'
-            # scope
-            # token = util.prompt_for_user_token(username=user,
-                                               # client_id=client_id,
-                                               # client_secret=client_secret,
-                                               # scope=scope,
-                                               # rediret_uri=uri)
-
-            # def aut_user_playlist_read(self, user=None, scope=None):
-            # '''
-            # This method reads through the user's playlists and obtains all of
-            # the tracks
-
-            # Input:
-            # - user: The Spotify username as a string of alphanumeric values
-            # - scope: Is the authentication requirement necessitated byt the
-            # program to proceed
-
-            # Output:
-            # - JSON: Containing song audio features for a series of songs for
-            # a given user
-            # '''
-
-            '''
-            Note, you can use recommendations feature to provide the best
-            possible reccomendations for users, include the target value using
-            both of the  users total top favorite tracks averages
-            '''
+        # if user1 is None and user2 is None:
+        #     raise Exception('You need to provide at least one Username')
+        # elif user1 is not None and user2 is not None:
