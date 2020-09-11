@@ -34,7 +34,7 @@ class User:
         self.user = None
         self.cache_path = ('../.user_cache')
 
-    def user_top_50(self, user):
+    def user_top_50(self, user_id):
         '''
         This method will create the client credentials to query users for their
         tokens.
@@ -55,7 +55,7 @@ class User:
         client_id = self.client_id
         scope = self.scope
         uri = self.uri
-        user = user
+        user_id = user_id
 
         # OAuth Credentials; only used when token is cached
         spot_cc = spotipy.oauth2.SpotifyOAuth(username=user,
