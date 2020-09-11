@@ -99,8 +99,8 @@ class User:
                           ]
 
         return {
-            'Top Tracks tokens': 'token_info',
-            'User': {user},
+            'Tokens Info': 'token_info',
+            'User ID': user_id,
             'Top Track IDs': top_50_trx_ids
         }
 
