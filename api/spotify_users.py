@@ -58,7 +58,7 @@ class User:
         user_id = user_id
 
         # OAuth Credentials; only used when token is cached
-        spot_cc = spotipy.oauth2.SpotifyOAuth(username=user,
+        spot_cc = spotipy.oauth2.SpotifyOAuth(username=user_id,
                                               client_id=client_id,
                                               client_secret=client_secret,
                                               cache_path=cache_path,
@@ -68,7 +68,7 @@ class User:
 
         # Testing the util.prompt_for_user_token() method
         top_trx_accs_token = util.prompt_for_user_token(
-                                            username=user,
+                                            username=user_id,
                                             # username='agustinvargas',
                                             # username='gabriela_ayala19',
                                             # username='dintherye',
