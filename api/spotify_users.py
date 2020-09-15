@@ -1,16 +1,18 @@
 # imports
-
 import sys
 import json
+from os import getenv
+
 import spotipy
 # import webbrowser
 import numpy as np
 import pandas as pd
-from os import getenv
 import spotipy.util as util
 from dotenv import load_dotenv
 from json.decoder import JSONDecodeError
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
+
+from my_db import UpdateTables
 
 
 class User:
@@ -56,6 +58,7 @@ class User:
         scope = self.scope
         uri = self.uri
         user_id = user_id
+        disp_name_update = UpdateTables()
 
         # OAuth Credentials; only used when token is cached
         spot_cc = spotipy.oauth2.SpotifyOAuth(username=user_id,
@@ -79,6 +82,7 @@ class User:
                                             redirect_uri=uri)
 
         spot_session = spotipy.Spotify(auth=top_trx_accs_token)
+        current_user_info = spot_session.current_user()
 
         # Token access for given user, given scope
         token_info = spot_cc.get_access_token(as_dict=True)
@@ -98,10 +102,16 @@ class User:
                                                 )
                           ]
 
+        # Adding dispplay_name to users table
+        # disp_name_update.update_users_info(
+        #                         display_name=current_user_info['display_name']
+                                )
+
         return {
+            'Display Name': 'Done',
             'Tokens Info': 'token_info',
-            'User ID': user_id,
-            'Top Track IDs': top_50_trx_ids
+            'User ID': 'user_id',
+            'Top Track IDs': 'top_50_trx_ids'
         }
 
     def playlist_generator(self, user1=None, user2=None):
