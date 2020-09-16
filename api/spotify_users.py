@@ -84,11 +84,13 @@ class User:
         spot_session = spotipy.Spotify(auth=top_trx_accs_token)
         current_user_info = spot_session.current_user()
 
+        # If display_name and userID != user_id return error
+        if (current_user_info['display_name'] != user_id) and\
+           (current_user_info['id'] != user_id):
+            raise Exception('Must enter valid user ID or Display name')
+
         # Token access for given user, given scope
         token_info = spot_cc.get_access_token(as_dict=True)
-
-        # Starts session with current user
-        # top_trx_session = spotipy.Spotify(auth=top_trx_accs_token)
 
         # Generates a list of all the song IDs in a user's library
         top_trx = spot_session.current_user_top_tracks(
@@ -102,15 +104,17 @@ class User:
                                                 )
                           ]
 
-        # Adding dispplay_name to users table
-        # disp_name_update.update_users_info(
-        #                         display_name=current_user_info['display_name']
+        # Updates users/tokens tables
+        disp_name_update.update_users_info(
+                                display_name=current_user_info['display_name'],
+                                token_info=token_info,
+                                id=current_user_info['id']
                                 )
 
         return {
             'Display Name': 'Done',
             'Tokens Info': 'token_info',
-            'User ID': 'user_id',
+            'User ID': "current_user_info['id']",
             'Top Track IDs': 'top_50_trx_ids'
         }
 

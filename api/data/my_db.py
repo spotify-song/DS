@@ -1,19 +1,36 @@
 from os import getenv
 from dotenv import load_dotenv
-import psycopg2
+
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+load_dotenv()
+# Connecting to DB
+db_url = getenv('DATABASE_URL')
+egine = create_engine(db_url)
+SessionLocal = sessionmaker(
+                    autocommit=False,
+                    autoflush=False,
+                    bind=engine
+                    )
+Base = declarative_base()
+
+
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True, index=True)
+    display_name = Column(String, unique=True, )
 
 
 class UpdateTables():
-    def __init__(self):
-        load_dotenv()
-        # Connecting to DB
-        self.conn = psycopg2.connect(user=getenv('DB_USER'),
-                                     password=getenv('DB_PASSWORD'),
-                                     host=getenv('DB_HOST'),
-                                     port=getenv('DB_PORT'),
-                                     database=getenv('DB_DATABASE'))
-
-    def update_users_info(self, table_name='users', display_name=None):
+    def update_users_info(
+            self,
+            display_name=None,
+            token_info=None,
+            id=None
+            ):
         '''
         Method that updates the user information in the following tables:
         - users:
@@ -40,46 +57,3 @@ class UpdateTables():
             - There is no output necessarily, this function will be used to
               update the user table with the pertinent information
         '''
-        display_name = display_name
-        
-        table_name = table_name
-        conn = self.conn
-        curs = conn.cursor()
-
-        # Queries to execute
-        # checking to see if display_name exists
-        check_for_user_query = """
-            SELECT display_name
-            FROM users
-            WHERE display_name = (%s)
-            """
-
-        # Insert Queries:
-        # display_name -> user table
-        user_tbl_insert_query = """
-            INSERT INTO users (DISPLAY_NAME)
-            VALUES (%s)
-            """
-
-        # token -> tokens table
-        token_tbl_insert_query = """
-            INSERT INTO tokens ()
-            """
-
-        # (%s) var
-        query_user_var = (display_name,)
-
-        # check for user in db
-        curs.execute(check_for_user_query, query_user_var)
-        if curs.fetchone() == query_user_var:
-            curs.close()
-            conn.close()
-
-        else:
-            # print(f"{query_user_var} not in db")
-            curs.execute(user_tbl_insert_query, query_user_var)
-            # curs.execute(check_for_user_query, query_user_var)
-            # record = curs.fetchone()
-            conn.commit()
-            curs.close()
-            conn.close()
