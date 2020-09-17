@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from json.decoder import JSONDecodeError
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
-from my_db import UpdateTables
+# from my_db import UpdateTables
 
 
 class User:
@@ -58,7 +58,7 @@ class User:
         scope = self.scope
         uri = self.uri
         user_id = user_id
-        disp_name_update = UpdateTables()
+        # disp_name_update = UpdateTables()
 
         # OAuth Credentials; only used when token is cached
         spot_cc = spotipy.oauth2.SpotifyOAuth(username=user_id,
@@ -105,16 +105,16 @@ class User:
                           ]
 
         # Updates users/tokens tables
-        disp_name_update.update_users_info(
-                                display_name=current_user_info['display_name'],
-                                token_info=token_info,
-                                id=current_user_info['id']
-                                )
+        # disp_name_update.update_users_info(
+        #                         display_name=current_user_info['display_name'],
+        #                         token_info=token_info,
+        #                         id=current_user_info['id']
+        #                         )
 
         return {
-            'Display Name': 'Done',
-            'Tokens Info': 'token_info',
-            'User ID': "current_user_info['id']",
+            'Display Name': current_user_info['display_name'],
+            'Tokens Info': token_info,
+            'User ID': current_user_info['id'],
             'Top Track IDs': 'top_50_trx_ids'
         }
 
