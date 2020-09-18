@@ -104,6 +104,9 @@ class User:
                                                 )
                           ]
 
+        # Track audio features for one tracks
+
+
         # Updates users/tokens tables
         # disp_name_update.update_users_info(
         #                         display_name=current_user_info['display_name'],
@@ -115,7 +118,8 @@ class User:
             'Display Name': current_user_info['display_name'],
             'Tokens Info': token_info,
             'User ID': current_user_info['id'],
-            'Top Track IDs': 'top_50_trx_ids'
+            'Top Track IDs': top_50_trx_ids[0],
+            'Track Audio Features':
         }
 
     def playlist_generator(self, user1=None, user2=None):

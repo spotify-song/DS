@@ -53,7 +53,6 @@ class Tokens(Base):
         expires_at='%s',\
         user='%s',\
         user_id='%s')>" % (
-            self.id,
             self.access_token,
             self.token_type,
             self.expires_in,
