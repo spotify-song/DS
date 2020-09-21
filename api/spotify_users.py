@@ -15,7 +15,7 @@ from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 # from my_db import UpdateTables
 
 
-class User:
+class UserData:
 
     spot_creds = None     # Gathers credentials for song data
     spot_session = None   # Starts a spotify session
@@ -105,7 +105,7 @@ class User:
                           ]
 
         # Track audio features for one tracks
-
+        top_50_aud_feat = spot_session.audio_features(tracks=top_50_trx_ids)
 
         # Updates users/tokens tables
         # disp_name_update.update_users_info(
@@ -118,8 +118,8 @@ class User:
             'Display Name': current_user_info['display_name'],
             'Tokens Info': token_info,
             'User ID': current_user_info['id'],
-            'Top Track IDs': top_50_trx_ids[0],
-            'Track Audio Features':
+            'Top Track IDs': top_50_trx_ids,
+            'Track Audio Features': top_50_aud_feat
         }
 
     def playlist_generator(self, user1=None, user2=None):
