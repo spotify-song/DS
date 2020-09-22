@@ -1,13 +1,15 @@
 from os import getenv
 from dotenv import load_dotenv
 
+import sqlalchemy
 from sqlalchemy import create_engine
+from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship, backref
 
 load_dotenv()
 # Connecting to DB
-egine = create_engine(getenv('DATABASE_URL'))
+engine = create_engine(getenv('DATABASE_URL'))
 SessionLocal = sessionmaker(
                     autocommit=False,
                     autoflush=False,
@@ -19,9 +21,9 @@ Base = declarative_base()
 
 
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = 'user'
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, index=True)
     display_name = Column(String, unique=True, nullable=False)
 
     # Backref allows you to update values in a different table
@@ -30,8 +32,8 @@ class User(Base):
     # in the case of the value below, the 'token' value will be used to
     # fill the 'user_id' column in the 'Tokens' table
     # Ex: Tokens(all_token_column_names=all_token_values,
-    #            user_token=User(object))
-    token = relationship('Tokens', backref='user_token', uselist=False)
+    #           user_token=User(object))
+    token = relationship('Tokens', backref='user_token')
     user_playlist = relationship('UserPlaylist', backref='user_id')
 
     def __repr__(self):
@@ -48,8 +50,7 @@ class Tokens(Base):
     refresh_token = Column(String, unique=True, nullable=False)
     scope = Column(String, unique=False, nullable=False)
     expires_at = Column(Integer, unique=False, nullable=False)
-    user = Column(String, unique=True, nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user = Column(String, ForeignKey('user.id'))
 
     def __repr__(self):
         return "<Tokens(\
@@ -59,30 +60,28 @@ class Tokens(Base):
         refresh_token='%s',\
         scope='%s',\
         expires_at='%s',\
-        user='%s',\
-        user_id='%s')>" % (
+        user='%s')>" % (
             self.access_token,
             self.token_type,
             self.expires_in,
             self.refresh_token,
             self.scope,
             self.expires_at,
-            self.user,
-            self.user_id
+            self.user
             )
 
 
 class Tracks(Base):
     __tablename__ = 'tracks'
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True)
     danceability = Column(Float)
     energy = Column(Float)
     key = Column(Integer)
     loudness = Column(Float)
     mode = Column(Integer)
     speechiness = Column(Float)
-    accousticness = Column(Float)
+    acousticness = Column(Float)
     instrumentalness = Column(Float)
     valence = Column(Float)
     liveness = Column(Float)
@@ -93,23 +92,19 @@ class Tracks(Base):
     user_ply_lst = relationship('UserPlaylist',
                                 backref='track_id',
                                 uselist=False)
-    top_tracks = relationship('TopTracks',
-                              backref='trx_id',
-                              uselist=False)
 
     def __repr__(self):
         return "<Tracks Data(danceability='%s', energy='%s', key='%s',\
-                loudness='%s', mode='%s', speechiness='%s',\
-                accousticness='%s', instrumentalness='%s',\
-                liveness='%s', valence='%s', tempo='%s', type='%s',\
-                duration_ms='%s', time_signature='%s')" % (
+                loudness='%s', mode='%s', speechiness='%s', acousticness='%s',\
+                instrumentalness='%s', liveness='%s', valence='%s',\
+                tempo='%s', duration_ms='%s', time_signature='%s')" % (
                                                         self.danceability,
                                                         self.energy,
                                                         self.key,
                                                         self.loudness,
                                                         self.mode,
                                                         self.speechiness,
-                                                        self.accousticness,
+                                                        self.acousticness,
                                                         self.instrumentalness,
                                                         self.valence,
                                                         self.liveness,
@@ -129,9 +124,9 @@ class UserPlaylist(Base):
     __tablename__ = 'user_playlist'
 
     id = Column(Integer, primary_key=True, index=True)
-    u_id = Column(Integer, ForeignKey('users.id'))
-    tracks_id = Column(Integer, ForeignKey('tracks.id'))
-    uri = Column(String)
+    u_id = Column(String, ForeignKey('user.id'))           # User_ID
+    tracks_id = Column(String, ForeignKey('tracks.id'))    # Track_ID
+    uri = Column(String)                                    # Playlist_URI
 
     def __repr__(self):
         return "<User Playlist(u_id='%s', tracks_id='%s', uri='%s')" % (
@@ -139,19 +134,3 @@ class UserPlaylist(Base):
                                                     self.tracks_id,
                                                     self.uri
                                                     )
-
-
-class TopTracks(Base):
-    '''When running make sure to set the following args:
-        trx_id=Tracks()object to fill the ForeignKey for the track_id arg'''
-    __tablename__ = 'top_tracks'
-
-    id = Column(Integer, primary_key=True, index=True)
-    track = Column(String, unique=True, nullable=False)
-    track_id = Column(Integer, ForeignKey('tracks.id'))
-
-    def __repr__(self):
-        return "<Top Tracks(track='%s', track_id='%s')" % (
-                                                self.track,
-                                                self.track_id
-                                                )

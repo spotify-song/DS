@@ -22,7 +22,6 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 
-
 class User(BaseModel):
     '''User ID'''
     user_id_1: str = Field(..., example='avargas-274')

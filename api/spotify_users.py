@@ -12,7 +12,8 @@ from dotenv import load_dotenv
 from json.decoder import JSONDecodeError
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
-# from my_db import UpdateTables
+import models.my_db
+from models.my_db import User, Tokens, Tracks, UserPlaylist
 
 
 class UserData:
@@ -35,6 +36,21 @@ class UserData:
         self.scope = 'playlist-modify-public user-library-read user-top-read'
         self.user = None
         self.cache_path = ('../.user_cache')
+
+    def check_for_user(self, user_id):
+        """
+        Checks for user in DB.
+
+        Input:
+            - User_ID: alpha neumeric values
+
+        Output:
+            - True: if user exists in DB
+            - False: False if user does not exist in DB
+        """
+        user_id = user_id
+        q = session.query(User).filter(User.id == user_id).fisrts()
+        
 
     def user_top_50(self, user_id):
         '''
@@ -72,9 +88,6 @@ class UserData:
         # Testing the util.prompt_for_user_token() method
         top_trx_accs_token = util.prompt_for_user_token(
                                             username=user_id,
-                                            # username='agustinvargas',
-                                            # username='gabriela_ayala19',
-                                            # username='dintherye',
                                             client_id=client_id,
                                             client_secret=client_secret,
                                             cache_path=cache_path,
@@ -121,25 +134,3 @@ class UserData:
             'Top Track IDs': top_50_trx_ids,
             'Track Audio Features': top_50_aud_feat
         }
-
-    def playlist_generator(self, user1=None, user2=None):
-        '''
-        This method generates a playlist from two users that have provided
-        access to the system
-
-        Note: You can use recommendations feature to provide the best
-        possible reccomendations for users, include the target value using
-        both of the  users total top favorite tracks averages
-
-        Input:
-            - user1/2:
-                User names should be a string of characters, if one of the two
-                users is not provided
-                If a user does not provide app token access, spotify will also
-                be used to generate recommendations
-        Output:
-            - URI: A spotify link to the generated playlist given the two users
-        '''
-        # if user1 is None and user2 is None:
-        #     raise Exception('You need to provide at least one Username')
-        # elif user1 is not None and user2 is not None:
