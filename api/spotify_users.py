@@ -4,12 +4,14 @@ import json
 from os import getenv
 
 import spotipy
-# import webbrowser
 import numpy as np
 import pandas as pd
 import spotipy.util as util
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from json.decoder import JSONDecodeError
+from sqlalchemy.ext.declarative import declarative_base
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
 import models.my_db
@@ -28,16 +30,79 @@ class UserData:
 
         load_dotenv()
 
+        # Spot Creds/Auth
         self.client_secret = getenv('SPOTIFY_CLIENT_SECRET')
         self.client_id = getenv('SPOTIFY_CLIENT_ID')
+
         # redirects to app site
         self.uri = getenv('uri')
+
         # Creates/adds playlist; Gets saved tracks; top saved tracks/artists
+        # and stores user cache in the specified path
         self.scope = 'playlist-modify-public user-library-read user-top-read'
         self.user = None
         self.cache_path = ('../.user_cache')
 
-    def check_for_user(self, user_id):
+        # Connects to DB
+        self.engine = create_engine(getenv('DATABASE_URL'))
+        self.Session = sessionmaker(
+                            autocommit=False,
+                            autoflush=False,
+                            bind=self.engine
+                            )
+        self.base = declarative_base()
+
+    def add_tracks(self, top_50_trx_ids, top_50_aud_feat):
+        """
+        This function is used when the user does not have their top 50 trx in
+        our db, and we need to add them after adding the user.
+
+        Adds tracks to db if the user is not in DB.
+
+        Input:
+            - top_50_trx_ids: List of 50 alpha-neumeric track IDs
+            - top_50_aud_feat: List of dicts containing feat data
+
+        Output:
+            - Updates DB with the track id and track feature data
+        """
+        session = Session()
+        top_50_trx_ids = top_50_trx_ids
+        top_50_aud_feat = top_50_aud_feat
+
+        trx = []
+        for k, v in enumerate(top_50_aud_feat):
+            trk_sesh = session.query(
+                                    Tracks
+                                    ).filter(
+                                            Tracks.id == top_50_trx_ids[k]
+                                            ).first()
+            if trk_sesh is not None:
+                continue
+            globals()['trk_' + str(k)] = Tracks(
+                                        id=top_50_trx_ids[k],
+                                        danceability=v['danceability'],
+                                        energy=v['energy'],
+                                        key=v['key'],
+                                        loudness=v['loudness'],
+                                        mode=v['mode'],
+                                        speechiness=v['speechiness'],
+                                        acousticness=v['acousticness'],
+                                        instrumentalness=v['instrumentalness'],
+                                        valence=v['valence'],
+                                        liveness=v['liveness'],
+                                        tempo=v['tempo'],
+                                        duration_ms=v['duration_ms'],
+                                        time_signature=v['time_signature']
+                                        )
+            trx.append(globals()['trk_' + str(k)])
+
+        session.add_all(trx)
+        session.commit()
+
+        return session
+
+    def check_for_user(self, user_id, session):
         """
         Checks for user in DB.
 
@@ -45,12 +110,21 @@ class UserData:
             - User_ID: alpha neumeric values
 
         Output:
-            - True: if user exists in DB
-            - False: False if user does not exist in DB
+            - q: User() object from the my_db module
+                 contains q.id (user id) and q.display_name (user display name)
         """
+        session = session
+        engine = self.engine
+        Base = self.base
         user_id = user_id
-        q = session.query(User).filter(User.id == user_id).fisrts()
-        
+
+        q = session.query(User).filter(User.id == user_id).first()
+
+        if q is None:
+            session.add(user)
+            session.commit()
+
+        return q
 
     def user_top_50(self, user_id):
         '''

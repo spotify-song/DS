@@ -32,7 +32,7 @@ class User(Base):
     # in the case of the value below, the 'token' value will be used to
     # fill the 'user_id' column in the 'Tokens' table
     # Ex: Tokens(all_token_column_names=all_token_values,
-    #           user_token=User(object))
+    #            user_token=User(object))
     token = relationship('Tokens', backref='user_token')
     user_playlist = relationship('UserPlaylist', backref='user_id')
 
@@ -41,7 +41,7 @@ class User(Base):
 
 
 class Tokens(Base):
-    __tablename__ = 'tokens'
+    __tablename__ = 'track_token'
 
     id = Column(Integer, primary_key=True, index=True)
     access_token = Column(String, unique=True, nullable=False)
@@ -54,21 +54,21 @@ class Tokens(Base):
 
     def __repr__(self):
         return "<Tokens(\
-        access_token='%s',\
-        token_type='%s',\
-        expires_in='%s',\
-        refresh_token='%s',\
-        scope='%s',\
-        expires_at='%s',\
-        user='%s')>" % (
-            self.access_token,
-            self.token_type,
-            self.expires_in,
-            self.refresh_token,
-            self.scope,
-            self.expires_at,
-            self.user
-            )
+                        access_token='%s',\
+                        token_type='%s',\
+                        expires_in='%s',\
+                        refresh_token='%s',\
+                        scope='%s',\
+                        expires_at='%s',\
+                        user='%s')>" % (
+                                        self.access_token,
+                                        self.token_type,
+                                        self.expires_in,
+                                        self.refresh_token,
+                                        self.scope,
+                                        self.expires_at,
+                                        self.user
+                                        )
 
 
 class Tracks(Base):
@@ -95,9 +95,10 @@ class Tracks(Base):
 
     def __repr__(self):
         return "<Tracks Data(danceability='%s', energy='%s', key='%s',\
-                loudness='%s', mode='%s', speechiness='%s', acousticness='%s',\
-                instrumentalness='%s', liveness='%s', valence='%s',\
-                tempo='%s', duration_ms='%s', time_signature='%s')" % (
+                            loudness='%s', mode='%s', speechiness='%s',\
+                            acousticness='%s', instrumentalness='%s',\
+                            liveness='%s', valence='%s', tempo='%s',\
+                            duration_ms='%s', time_signature='%s')>" % (
                                                         self.danceability,
                                                         self.energy,
                                                         self.key,
@@ -126,11 +127,13 @@ class UserPlaylist(Base):
     id = Column(Integer, primary_key=True, index=True)
     u_id = Column(String, ForeignKey('user.id'))           # User_ID
     tracks_id = Column(String, ForeignKey('tracks.id'))    # Track_ID
-    uri = Column(String)                                    # Playlist_URI
+    uri = Column(String)                                   # Playlist_URI
 
     def __repr__(self):
-        return "<User Playlist(u_id='%s', tracks_id='%s', uri='%s')" % (
-                                                    self.u_id,
-                                                    self.tracks_id,
-                                                    self.uri
-                                                    )
+        return "<User Playlist(u_id='%s',\
+                                tracks_id='%s',\
+                                uri='%s')>" % (
+                                        self.u_id,
+                                        self.tracks_id,
+                                        self.uri
+                                        )
