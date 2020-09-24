@@ -8,6 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, backref
 
 load_dotenv()
+
 # Connecting to DB
 engine = create_engine(getenv('DATABASE_URL'))
 SessionLocal = sessionmaker(
@@ -15,7 +16,6 @@ SessionLocal = sessionmaker(
                     autoflush=False,
                     bind=engine
                     )
-
 
 Base = declarative_base()
 
@@ -37,7 +37,10 @@ class User(Base):
     user_playlist = relationship('UserPlaylist', backref='user_id')
 
     def __repr__(self):
-        return "<User(display_name='%s')>" % (self.display_name)
+        return "<User(id='%s', display_name='%s')>" % (
+                                                    self.id,
+                                                    self.display_name
+                                                    )
 
 
 class Tokens(Base):
@@ -119,8 +122,8 @@ class UserPlaylist(Base):
     '''When running this class, make sure to set the user_id arg to the
         user object it corresponds to; same goes for the track_id arg
         (note: track_id is diff from tracks_id) to the tracks object
-        user_id = User()object  to fill the u_id arg ForeignKey
-        track_id = Tracks()object  to fill the tracks_id arg ForeignKey'''
+        user_id = User() object  to fill the u_id arg ForeignKey
+        track_id = Tracks() object  to fill the tracks_id arg ForeignKey'''
 
     __tablename__ = 'user_playlist'
 
