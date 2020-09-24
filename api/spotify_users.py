@@ -208,13 +208,35 @@ class UserData:
 
         return session
 
+    def create_playlsit(self, user1_top_tracks, user2_top_tracks, spot_sesh):
+        """
+        This function will take the top 50 tracks for 2 users and generate a
+        playlist (uri) for the users to share.
+
+        Input:
+            - user1_top_tracks: list of top 50 track ids (string)
+            - user2_top_tracks: list of top 50 track ids (string)
+
+        Output:
+            - uri: playlist containing a number of random tracks based on the
+                   two user's playlists and libraries.
+        """
+        user1_top_tracks = user1_top_tracks
+        user2_top_tracks = user2_top_tracks
+        spot_session = spot_sesh
+
+        users_top_trx = user1_top_tracks + user2_top_tracks
+        recs = spot_session.recommendations(seed_tracks=users_top_trx)
+
+        return
+
     def user_top_50(self, user_id):
         '''
         This method will create the client credentials to query users for their
         tokens.
 
         Input:
-            - user: The Spotify username as a string
+            - user: Spotify username as a string of alphaneumeric characters
             - scope: Is the authentication requirement necessitated by the
                      program to proceed
 
@@ -296,6 +318,6 @@ class UserData:
             'spotify connect': spot_cc,
             'Current User Info': current_user_info,
             'Tokens Info': token_info,
-            'Top Track IDs': top_50_trx_ids,
+            f'Top Track IDs {user_id}': top_50_trx_ids,
             'Track Audio Features': top_50_aud_feat
         }
