@@ -1,6 +1,7 @@
 # imports
 import sys
 import json
+import random
 from os import getenv
 
 import spotipy
@@ -211,6 +212,8 @@ class UserData:
                         user1_top_aud_feat,
                         user2_top_aud_feat,
                         spot_sesh,
+                        current_user_info,
+                        user2=None
                         ):
         """
         This function will take the top 50 tracks for 2 users and generate a
@@ -226,13 +229,14 @@ class UserData:
         """
         user1_top_aud_feat = user1_top_aud_feat
         user2_top_aud_feat = user2_top_aud_feat
+        current_user_info = current_user_info
         spot_session = spot_sesh
 
-        # take the average of all of the values below, then compare them to set
-        # mins and maxs for each given data from the two users:
-        # First: with given audio_features, take averages
-        # Second: compare averages between both users
-        # Third: set mins and maxs
+        if user2 is not None:
+            playlist_name = f"Mine and {user2}'s playlist baby"
+        else:
+            playlist_name = f"{current_user_info['display_name']}'s lonely\
+                            playlist"
 
         user1_df = pd.DataFrame(user1_top_aud_feat)
         user2_df = pd.DataFrame(user2_top_aud_feat)
@@ -241,7 +245,7 @@ class UserData:
                                                     inplace=False,
                                                     subset='id'
                                                     )
-        users_top_trx_id = users_top_trx['id']
+        users_top_trx_id = random(sample(list(users_top_trx['id']), 5))
         recs = spot_session.recommendations(
                                     seed_tracks=users_top_trx_id,
                                     limit=50,
@@ -270,9 +274,24 @@ class UserData:
                                                                 'tempo'
                                                                 ].mean()
                                     )
-        # playlist_uri =
+        tracks = []
+        for _ in recs['tracks']:
+            tracks.append(_['id'])
 
-        return None
+        playlist = spot_session.user_playlist_create(
+                                                    user=current_user_info[
+                                                                        'id'
+                                                                        ],
+                                                    name=playlist_name,
+                                                    public=True
+                                                )
+        spot_session.user_playlist_add_tracks(
+                                            user=current_user_info['id'],
+                                            playlist_id=playlist['id'],
+                                            tracks=tracks
+                                            )
+
+        return playlist['uri']
 
     def user_top_50(self, user_id):
         '''
