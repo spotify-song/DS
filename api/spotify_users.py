@@ -34,11 +34,10 @@ class UserData:
         self.client_secret = getenv('SPOTIFY_CLIENT_SECRET')
         self.client_id = getenv('SPOTIFY_CLIENT_ID')
 
-        # redirects to app site
+        # change for deplpoyment
         self.uri = getenv('uri')
 
-        # Creates/adds playlist; Gets saved tracks; top saved tracks/artists
-        # and stores user cache in the specified path
+        # Scopes: User top track; creates playlist
         self.scope = 'playlist-modify-public user-library-read user-top-read'
         self.user = None
         self.cache_path = ('../.user_cache')
@@ -157,7 +156,7 @@ class UserData:
                 session.execute(update_token)
                 session.commit()
 
-        return session, user1
+        return session, user1, token_info
 
     def add_tracks(self, top_50_trx_ids, top_50_aud_feat, session):
         """
@@ -208,27 +207,72 @@ class UserData:
 
         return session
 
-    def create_playlsit(self, user1_top_tracks, user2_top_tracks, spot_sesh):
+    def create_playlsit(self,
+                        user1_top_aud_feat,
+                        user2_top_aud_feat,
+                        spot_sesh,
+                        ):
         """
         This function will take the top 50 tracks for 2 users and generate a
         playlist (uri) for the users to share.
 
         Input:
-            - user1_top_tracks: list of top 50 track ids (string)
-            - user2_top_tracks: list of top 50 track ids (string)
+            - user1_top_aud_feat: Top 50 track audio features (dict)
+            - user2_top_aud_feat: Top 50 track audio features (dict)
 
         Output:
             - uri: playlist containing a number of random tracks based on the
                    two user's playlists and libraries.
         """
-        user1_top_tracks = user1_top_tracks
-        user2_top_tracks = user2_top_tracks
+        user1_top_aud_feat = user1_top_aud_feat
+        user2_top_aud_feat = user2_top_aud_feat
         spot_session = spot_sesh
 
-        users_top_trx = user1_top_tracks + user2_top_tracks
-        recs = spot_session.recommendations(seed_tracks=users_top_trx)
+        # take the average of all of the values below, then compare them to set
+        # mins and maxs for each given data from the two users:
+        # First: with given audio_features, take averages
+        # Second: compare averages between both users
+        # Third: set mins and maxs
 
-        return
+        user1_df = pd.DataFrame(user1_top_aud_feat)
+        user2_df = pd.DataFrame(user2_top_aud_feat)
+        users_top_trx = pd.concat([user1_df, user2_df])
+        users_top_trx = users_top_trx.drop_duplicates(
+                                                    inplace=False,
+                                                    subset='id'
+                                                    )
+        users_top_trx_id = users_top_trx['id']
+        recs = spot_session.recommendations(
+                                    seed_tracks=users_top_trx_id,
+                                    limit=50,
+                                    target_danceability=users_top_trx[
+                                                                'danceability'
+                                                                ].mean(),
+                                    target_energy=users_top_trx[
+                                                                'energy'
+                                                                ].mean(),
+                                    target_loudness=users_top_trx[
+                                                                'loudness'
+                                                                ].mean(),
+                                    target_speechiness=users_top_trx[
+                                                                'speechiness'
+                                                                ].mean(),
+                                    target_acousticness=users_top_trx[
+                                                                'acousticness'
+                                                                ].mean(),
+                                    target_valence=users_top_trx[
+                                                                'valence'
+                                                                ].mean(),
+                                    target_liveness=users_top_trx[
+                                                                'liveness'
+                                                                ].mean(),
+                                    target_tempo=users_top_trx[
+                                                                'tempo'
+                                                                ].mean()
+                                    )
+        # playlist_uri =
+
+        return None
 
     def user_top_50(self, user_id):
         '''
@@ -319,5 +363,6 @@ class UserData:
             'Current User Info': current_user_info,
             'Tokens Info': token_info,
             f'Top Track IDs {user_id}': top_50_trx_ids,
-            'Track Audio Features': top_50_aud_feat
+            'Track Audio Features': top_50_aud_feat,
+            'Spot Sesh': spot_session
         }

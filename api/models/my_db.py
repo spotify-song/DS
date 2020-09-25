@@ -12,10 +12,10 @@ load_dotenv()
 # Connecting to DB
 engine = create_engine(getenv('DATABASE_URL'))
 SessionLocal = sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=engine
-                    )
+                        autocommit=False,
+                        autoflush=False,
+                        bind=engine
+                        )
 
 Base = declarative_base()
 
