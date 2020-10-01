@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, backref
+import psycopg2
 
 load_dotenv()
 
@@ -16,7 +17,7 @@ SessionLocal = sessionmaker(
                         autoflush=False,
                         bind=engine
                         )
-
+#
 Base = declarative_base()
 
 

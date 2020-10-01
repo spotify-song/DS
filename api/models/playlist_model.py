@@ -1,20 +1,21 @@
 import logging
 import random
 import os
+from os import getenv
+from dotenv import load_dotenv
 
 from fastapi import APIRouter
 import pandas as pd
 from pydantic import BaseModel, Field, validator
 from typing import List
+from sqlalchemy import create_engine
 
 
-# ML pkg
-# import joblib
+import sys
+sys.path.insert(0, '../')
+from api.models.my_db import *
+from api.spotify_users import UserData, CreatePlaylist
 
-
-# Vectorizer
-# some model
-# opening file and loading it
 
 log = logging.getLogger(__name__)
 
@@ -48,24 +49,38 @@ async def users(user_id_1, user_id_2):
 
     ### Response
     'playlist_uri': string of alphanumeric values that generate a playlist
-
-    ### Pseudo Code
-    if user_id 1 and 2 exist:
-        Run user 1 and 2 through model
-        return palylist uri
-    else:
-        Generate spotify token for user 1, and
-        request user 1 to send link to user 2
-        Generate token for user 2
-        return playlist uri
     '''
+    user_id_1 = user_id_1
+    user_id_2 = user_id_2
+    user_data_1 = UserData()
+    user_data_2 = UserData()
+    user1 = user_data_1.user_top_50(user_id=user_id_1)
+    user2 = user_data_2.user_top_50(user_id=user_id_2)
+    
+    session_1, user_1, token_info_1 = user1.check_for_user(
+                                            current_user_info=user1['Current User Info'],
+                                            spot_cc=user1['spotify connet']
+                                            )
+    session_2, user_2, token_info_2 = user2.check_for_user(
+                                            current_user_info=user2['Current User Info'],
+                                            spot_cc=user2['spotify connet']
+                                            )
+    playlist = CreatePlaylist()
+    playlist_uri, playlist_user = playlist.create_playlist(
+                                                    user1_top_aud_feat=user1['Track Audio Features'],
+                                                    user2_top_aud_feat=user2['Track Audio Features'],
+                                                    spot_sesh=user1['Spot Sesh'],
+                                                    current_user_info=user1['Current User Info'],
+                                                    user2=user_2.display_name
+                                                    )
+    
+    
+    
+    return {"playlist uri": playlist_uri}
 
-    return {"user_ids": [user_id_1, user_id_2],
-            "playlist_uri": f"{user_id_1} and {user_id_2}'s plylist baby"}
 
-
-@router.post('/uri/')
-async def auth():
+@router.post('/uri/{playlistname}')
+async def auth(playlistname):
     '''
     This function will return the playlist uri generated from the given users
     ### Path Parameter
@@ -74,5 +89,5 @@ async def auth():
     ### Reponse
     URI code to navigate user to the playlist generated.
     '''
-    return {'Playlist URI': playlist_uri.playlist_uri}
+    return {'Playlist URI': playlistname}
 # get token from both users to be able to access both of their libraries

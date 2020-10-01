@@ -5,6 +5,7 @@ import random
 from os import getenv
 
 import spotipy
+import psycopg2
 import numpy as np
 import pandas as pd
 import spotipy.util as util
@@ -15,8 +16,8 @@ from sqlalchemy import create_engine, update
 from sqlalchemy.ext.declarative import declarative_base
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
-import models.my_db
-from models.my_db import *
+import api.models.my_db
+from api.models.my_db import *
 
 
 class UserData:
@@ -52,7 +53,7 @@ class UserData:
                                 )
         self.base = declarative_base()
 
-    def check_for_user(self, current_user_info, spot_cc):
+    def check_for_user(self, user_id, display_name):
         """
         Checks for user in DB.
 
@@ -68,12 +69,12 @@ class UserData:
         session = self.Session()
         engine = self.engine
         Base = self.base
-        current_user_info = current_user_info
-        spot_cc = spot_cc
+        user_id = user_id
+        display_name = display_name
 
         user1 = User(
-                    id=current_user_info['id'],
-                    display_name=current_user_info['display_name']
+                    id=user_id,
+                    display_name=display_name
                     )
 
         # update user and commit, then update token, and commit
@@ -208,7 +209,138 @@ class UserData:
 
         return session
 
-    def create_playlsit(self,
+    def add_playlist(self, paylist_uri, session, user1):
+        """
+        Adds newly created playlist to DB with current user.
+
+        Input:
+            - Plalist URI: string of characters in the following form:
+                'spotify:playlist:2Pk3OLPiVXIZHieWs5ZGHp'
+
+        Output:
+            - Updates playlist DB
+        """
+        user1 = user1
+        session = session
+        playlist_uri = playlist_uri
+
+        playlist = UserPlaylist(
+                            uesr_id=user1,
+                            user=playlist_uri,
+                            tracks_id=None
+                            )
+        session.add(playlist)
+        session.commit()
+
+        return None
+
+    def authenticate_users(self, user1, user2):
+        """
+        Authenticates the second the users.
+        """
+        client_secret = self.client_secret
+        cache_path = self.cache_path
+        client_id = self.client_id
+        scope = self.scope
+        uri = self.uri
+        user_id = user_id
+        session = self.Session()
+
+        # OAuth Credentials; only used when token is cached
+        spot_cc = spotipy.oauth2.SpotifyOAuth(
+                                            username='',
+                                            client_id=client_id,
+                                            client_secret=client_secret,
+                                            cache_path=cache_path,
+                                            scope=scope,
+                                            redirect_uri=uri
+                                            )
+
+        # Testing the util.prompt_for_user_token() method
+        accs_token = util.prompt_for_user_token(
+                                            username=user_id,
+                                            client_id=client_id,
+                                            client_secret=client_secret,
+                                            cache_path=cache_path,
+                                            scope=scope,
+                                            redirect_uri=uri
+                                            )
+
+        spot_session = spotipy.Spotify(auth=accs_token)
+        current_user_info = spot_session.current_user()
+
+        # Token access for given user, given scope
+        token_info = spot_cc.get_access_token(as_dict=True)
+
+    def user_top_50(self, user_id):
+        '''
+        This method will create the client credentials to query users for their
+        tokens.
+
+        Input:
+            - user: Spotify username as a string of alphaneumeric characters
+            - scope: Is the authentication requirement necessitated by the
+                     program to proceed
+
+        Output:
+            - Top Tracks Sesh:
+            - User: The string of characters that is the user so we can store
+                    it in the DB
+            - Top Track IDs: List of strings of the top 50 tracks for a user
+        '''
+        user_id = user_id
+        session = self.Session()
+
+        # Generates a list of top 50 song IDs in a user's library
+        top_trx = spot_session.current_user_top_tracks(
+                                                limit=50,
+                                                time_range='medium_term'
+                                                )
+        top_50_trx_ids = [top_trx[
+                            'items'
+                                ][x][
+                                    'id'
+                                        ] for x in range(
+                                                        len(
+                                                            top_trx[
+                                                                'items'
+                                                                ]
+                                                            )
+                                                        )
+                          ]
+
+        # Track audio features for one tracks
+        top_50_aud_feat = spot_session.audio_features(tracks=top_50_trx_ids)
+
+        # Updates users/tokens tables
+
+        return {
+            'spotify connect': spot_cc,
+            'Current User Info': current_user_info,
+            'Tokens Info': token_info,
+            f'Top Track IDs {user_id}': top_50_trx_ids,
+            'Track Audio Features': top_50_aud_feat,
+            'Spot Sesh': spot_session
+        }
+
+
+class CreatePlaylist:
+    def __init__(self):
+        load_dotenv()
+
+        # Spot Creds/Auth
+        self.client_secret = getenv('SPOTIFY_CLIENT_SECRET')
+        self.client_id = getenv('SPOTIFY_CLIENT_ID')
+
+        # change for deplpoyment
+        self.uri = getenv('uri')
+
+        # Scopes: User top track; creates playlist
+        self.scope = 'playlist-modify-public user-library-read user-top-read'
+        self.user = None
+        self.cache_path = ('../.user_cache')
+
+    def create_playlist(self,
                         user1_top_aud_feat,
                         user2_top_aud_feat,
                         spot_sesh,
@@ -230,10 +362,11 @@ class UserData:
         user1_top_aud_feat = user1_top_aud_feat
         user2_top_aud_feat = user2_top_aud_feat
         current_user_info = current_user_info
+        user2 = user2
         spot_session = spot_sesh
 
         if user2 is not None:
-            playlist_name = f"Mine and {user2}'s playlist baby"
+            playlist_name = f"Mine and {user2}'s music child"
         else:
             playlist_name = f"{current_user_info['display_name']}'s lonely\
                             playlist"
@@ -291,97 +424,7 @@ class UserData:
                                             tracks=tracks
                                             )
 
-        return playlist['uri']
-
-    def user_top_50(self, user_id):
-        '''
-        This method will create the client credentials to query users for their
-        tokens.
-
-        Input:
-            - user: Spotify username as a string of alphaneumeric characters
-            - scope: Is the authentication requirement necessitated by the
-                     program to proceed
-
-        Output:
-            - Top Tracks Sesh:
-            - User: The string of characters that is the user so we can store
-                    it in the DB
-            - Top Track IDs: List of strings of the top 50 tracks for a user
-        '''
-        client_secret = self.client_secret
-        cache_path = self.cache_path
-        client_id = self.client_id
-        scope = self.scope
-        uri = self.uri
-        user_id = user_id
-        session = self.Session()
-        # disp_name_update = UpdateTables()
-
-        # OAuth Credentials; only used when token is cached
-        spot_cc = spotipy.oauth2.SpotifyOAuth(
-                                            username=user_id,
-                                            client_id=client_id,
-                                            client_secret=client_secret,
-                                            cache_path=cache_path,
-                                            scope=scope,
-                                            redirect_uri=uri
-                                            )
-
-        # Testing the util.prompt_for_user_token() method
-        accs_token = util.prompt_for_user_token(
-                                            username=user_id,
-                                            client_id=client_id,
-                                            client_secret=client_secret,
-                                            cache_path=cache_path,
-                                            scope=scope,
-                                            redirect_uri=uri
-                                            )
-
-        spot_session = spotipy.Spotify(auth=accs_token)
-        current_user_info = spot_session.current_user()
-
-        # If display_name and userID != user_id return error
-        if (current_user_info['display_name'] != user_id) and\
-           (current_user_info['id'] != user_id):
-            raise Exception('Must enter valid user ID or Display name')
-
-        # Token access for given user, given scope
-        token_info = spot_cc.get_access_token(as_dict=True)
-
-        # Generates a list of all the song IDs in a user's library
-        top_trx = spot_session.current_user_top_tracks(
-                                                limit=50,
-                                                time_range='medium_term'
-                                                )
-        top_50_trx_ids = [top_trx[
-                            'items'
-                                ][x][
-                                    'id'
-                                        ] for x in range(
-                                                        len(
-                                                            top_trx[
-                                                                'items'
-                                                                ]
-                                                            )
-                                                        )
-                          ]
-
-        # Track audio features for one tracks
-        top_50_aud_feat = spot_session.audio_features(tracks=top_50_trx_ids)
-
-        # Updates users/tokens tables
-        # disp_name_update.update_users_info(
-        #                         display_name=current_user_info['display_name'],
-        #                         token_info=token_info,
-        #                         id=current_user_info['id']
-        #                         )
-
         return {
-            'spotify connect': spot_cc,
-            'Current User Info': current_user_info,
-            'Tokens Info': token_info,
-            f'Top Track IDs {user_id}': top_50_trx_ids,
-            'Track Audio Features': top_50_aud_feat,
-            'Spot Sesh': spot_session
+            "URI": playlist['uri'],
+            "user": playlist['owner']['id']
         }
