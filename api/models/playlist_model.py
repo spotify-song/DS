@@ -42,41 +42,35 @@ class PlaylistURI(BaseModel):
 # route to get user IDs
 @router.get('/users/{user_id_1,user_id_2}')
 async def users(user_id_1, user_id_2):
-    '''
+    """
     This function takes in a series of user IDs
     ### Path Parameter
     'playlist_uri':  list of strings of IDs corresponding the user profiles
 
     ### Response
     'playlist_uri': string of alphanumeric values that generate a playlist
-    '''
+    """
     user_id_1 = user_id_1
     user_id_2 = user_id_2
-    user_data_1 = UserData()
-    user_data_2 = UserData()
-    user1 = user_data_1.user_top_50(user_id=user_id_1)
-    user2 = user_data_2.user_top_50(user_id=user_id_2)
+    users_data = UserData()
+    user1 = users_data.check_for_user()
+    user2_top_50_aud_feat = users_data.get_playlists_trx(
+                                        spot_session=user1['spot_session'],
+                                        user2=user_id_2
+                                        )
+    playlist_gen = CreatePlaylist()
+    playlist = playlist_gen.create_playlist(
+                                user1_top_aud_feat=user1['top_50_aud_feat'],
+                                user2_top_aud_feat=user2_top_50_aud_feat,
+                                spot_session=user1['spot_session'],
+                                user_info=user1['user_info'],
+                                user2=user_id_2
+                                )
     
-    session_1, user_1, token_info_1 = user1.check_for_user(
-                                            current_user_info=user1['Current User Info'],
-                                            spot_cc=user1['spotify connet']
-                                            )
-    session_2, user_2, token_info_2 = user2.check_for_user(
-                                            current_user_info=user2['Current User Info'],
-                                            spot_cc=user2['spotify connet']
-                                            )
-    playlist = CreatePlaylist()
-    playlist_uri, playlist_user = playlist.create_playlist(
-                                                    user1_top_aud_feat=user1['Track Audio Features'],
-                                                    user2_top_aud_feat=user2['Track Audio Features'],
-                                                    spot_sesh=user1['Spot Sesh'],
-                                                    current_user_info=user1['Current User Info'],
-                                                    user2=user_2.display_name
-                                                    )
-    
-    
-    
-    return {"playlist uri": playlist_uri}
+    return {
+            "playlist_uri": playlist['URI'],
+            }
+
 
 
 @router.post('/uri/{playlistname}')

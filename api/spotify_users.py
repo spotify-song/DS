@@ -41,7 +41,6 @@ class UserData:
 
         # Scopes: User top track; creates playlist
         self.scope = 'playlist-modify-public user-library-read user-top-read'
-        self.user = None
         self.cache_path = ('../.user_cache')
 
         # Connects to DB
@@ -53,7 +52,7 @@ class UserData:
                                 )
         self.base = declarative_base()
 
-    def check_for_user(self, user_id, display_name):
+    def check_for_user(self):
         """
         Checks for user in DB.
 
@@ -63,18 +62,35 @@ class UserData:
             - spot_cc: Object for the spotify credentials connection
 
         Output:
-            - : User() object from the my_db module
-                 contains q.id (user id) and q.display_name (user display name)
+            - session: DB Session
+            - user1: User object
+            - token_info: not sure this is entrirely necessary yet
         """
+        client_secret = self.client_secret
+        cache_path = self.cache_path
+        client_id = self.client_id
         session = self.Session()
+        redirect_uri = self.uri
         engine = self.engine
+        scope = self.scope
         Base = self.base
-        user_id = user_id
-        display_name = display_name
 
-        user1 = User(
-                    id=user_id,
-                    display_name=display_name
+        spot_cc = spotipy.oauth2.SpotifyOAuth(
+                                        username='',
+                                        client_id=client_id,
+                                        client_secret=client_secret,
+                                        cache_path=cache_path,
+                                        scope=scope,
+                                        redirect_uri=redirect_uri
+                                        )
+
+        spot_session = spotipy.Spotify(auth_manager=spot_cc)
+
+        user_info = spot_session.current_user()
+
+        user = User(
+                    id=user_info['id'],
+                    display_name=user_info['display_name']
                     )
 
         # update user and commit, then update token, and commit
@@ -82,83 +98,113 @@ class UserData:
                                         User
                                         ).filter(
                                                 User.display_name ==
-                                                user1.display_name
+                                                user.display_name
                                                 ).first()
+        user_id_q = session.query(
+                                User
+                                ).filter(
+                                        User.id ==
+                                        user.id
+                                        ).first()
 
         # checking if user exists, if not then add user and token
         # if exists, check if token exists, if not add
         # if token exists, update using refresh_key
-        if display_name_q is None:
-            session.add(user1)
+        if (display_name_q is None) or (user_id_q is None):
+            token_info = spot_cc.get_access_token(as_dict=True)
+            session.add(user)
             session.commit()
             token = Tokens(
-                        # Instead of of "user_dict['Tokens Info']"" it should
-                        # be "token_info"
-                        access_token=token_info['access_token'],
-                        token_type=token_info['token_type'],
-                        expires_in=token_info['expires_in'],
-                        refresh_token=token_info['refresh_token'],
-                        scope=token_info['scope'],
-                        expires_at=token_info['expires_at'],
-                        # Still user "user1" because the id is not changing,
-                        # simply adding mans to the db
-                        user_token=user1
-                        )
-            session.add(token)
-            session.commit()
-        # Else, check if user has corresponding token that is not expired
-        else:
-            print(f"User {user1.display_name} already exists in DataBase;\
-                    checking for token")
-            token_q = session.query(
-                                    Tokens
-                                    ).filter(
-                                            Tokens.user == user1.id
-                                            ).first()
-            if token_q is None:
-                print(f"We don't have a token for {user1.display_name},\
-                        adding new token")
-                token = Tokens(
-                            # "token_info" to add tokens to db
                             access_token=token_info['access_token'],
                             token_type=token_info['token_type'],
                             expires_in=token_info['expires_in'],
                             refresh_token=token_info['refresh_token'],
                             scope=token_info['scope'],
                             expires_at=token_info['expires_at'],
-                            # Still user "user1" because the id is not changing
-                            # simply adding mans to the db
-                            user_token=user1
+                            user_token=user
+                        )
+            session.add(token)
+            session.commit()
+        # Else, check if user has corresponding token that is not expired
+        else:
+            print(f"User {user.display_name} already exists in DataBase;\
+                    checking for token")
+            token_q = session.query(
+                                    Tokens
+                                    ).filter(
+                                            Tokens.user == user.id
+                                            ).first()
+            if token_q is None:
+                print(f"We don't have a token for {user.display_name},\
+                        adding new token")
+                token_info = spot_cc.get_access_token(as_dict=True)
+                token = Tokens(
+                                # "token_info" to add tokens to db
+                                access_token=token_info['access_token'],
+                                token_type=token_info['token_type'],
+                                expires_in=token_info['expires_in'],
+                                refresh_token=token_info['refresh_token'],
+                                scope=token_info['scope'],
+                                expires_at=token_info['expires_at'],
+                                user_token=user
                             )
                 session.add(token)
                 session.commit()
             # if the token exists refresh it, and update the value in table
             else:
-                print(f"{user1.display_name} has a token, updating it")
+                print(f"{user.display_name} has a token, updating it")
                 accs_token_refresh = spot_cc.refresh_access_token(
                                                         token_q.refresh_token
                                                         )
-                token_info = spot_cc.get_access_token(as_dict=True)
-                update_token = update(Tokens).where(
-                                                Tokens.user == user1.id
-                                                    ).values(
-                                                    access_token=token_info[
-                                                                'access_token'
-                                                                    ],
-                                                    expires_in=token_info[
-                                                                'expires_in'
-                                                                    ],
-                                                    refresh_token=token_info[
-                                                                'refresh_token'
-                                                                    ],
-                                                    expires_at=token_info[
-                                                                'expires_at'
-                                                                    ]
-                                                            )
+                update_token = update(
+                                    Tokens
+                                    ).where(
+                                            Tokens.user == user.id
+                                    ).values(
+                                        access_token=accs_token_refresh[
+                                                            'access_token'
+                                                                ],
+                                        expires_in=accs_token_refresh[
+                                                            'expires_in'
+                                                                ],
+                                        refresh_token=accs_token_refresh[
+                                                            'refresh_token'
+                                                                ],
+                                        expires_at=accs_token_refresh[
+                                                            'expires_at'
+                                                                ]
+                                                )
                 session.execute(update_token)
                 session.commit()
 
-        return session, user1, token_info
+        # Generates a list of top 50 song IDs in a user's library
+        top_trx = spot_session.current_user_top_tracks(
+                                                limit=50,
+                                                time_range='medium_term'
+                                                )
+        top_50_trx_ids = [top_trx[
+                            'items'
+                                ][x][
+                                    'id'
+                                        ] for x in range(
+                                                        len(
+                                                            top_trx[
+                                                                'items'
+                                                                ]
+                                                            )
+                                                        )
+                          ]
+        # Track audio features for one tracks
+        top_50_aud_feat = spot_session.audio_features(tracks=top_50_trx_ids)
+
+        return {
+                "session": session,
+                "spot_session": spot_session,
+                "user_info": user_info,
+                "user_id": user.id,
+                "top_50_trx_ids": top_50_trx_ids,
+                "top_50_aud_feat": top_50_aud_feat
+                }
 
     def add_tracks(self, top_50_trx_ids, top_50_aud_feat, session):
         """
@@ -209,7 +255,7 @@ class UserData:
 
         return session
 
-    def add_playlist(self, paylist_uri, session, user1):
+    def add_playlist(self, paylist_uri, session, user_id):
         """
         Adds newly created playlist to DB with current user.
 
@@ -220,12 +266,12 @@ class UserData:
         Output:
             - Updates playlist DB
         """
-        user1 = user1
+        user_id = user_id
         session = session
         playlist_uri = playlist_uri
 
         playlist = UserPlaylist(
-                            uesr_id=user1,
+                            uesr_id=user_id,
                             user=playlist_uri,
                             tracks_id=None
                             )
@@ -234,94 +280,52 @@ class UserData:
 
         return None
 
-    def authenticate_users(self, user1, user2):
+    def get_playlists_trx(self, spot_session, user2):
         """
-        Authenticates the second the users.
+        Gets user 2 playlists and tracks
         """
-        client_secret = self.client_secret
-        cache_path = self.cache_path
-        client_id = self.client_id
-        scope = self.scope
-        uri = self.uri
-        user_id = user_id
-        session = self.Session()
+        spot_session = spot_session
+        user2 = user2
 
-        # OAuth Credentials; only used when token is cached
-        spot_cc = spotipy.oauth2.SpotifyOAuth(
-                                            username='',
-                                            client_id=client_id,
-                                            client_secret=client_secret,
-                                            cache_path=cache_path,
-                                            scope=scope,
-                                            redirect_uri=uri
-                                            )
+        playlists = spot_session.user_playlists(user2)
 
-        # Testing the util.prompt_for_user_token() method
-        accs_token = util.prompt_for_user_token(
-                                            username=user_id,
-                                            client_id=client_id,
-                                            client_secret=client_secret,
-                                            cache_path=cache_path,
-                                            scope=scope,
-                                            redirect_uri=uri
-                                            )
+        if len(playlists['items']) < 10:
+            playlist_ids = []
+            for playlist_item in playlists['items']:
+                playlist_ids.append(playlist_item['id'])
 
-        spot_session = spotipy.Spotify(auth=accs_token)
-        current_user_info = spot_session.current_user()
-
-        # Token access for given user, given scope
-        token_info = spot_cc.get_access_token(as_dict=True)
-
-    def user_top_50(self, user_id):
-        '''
-        This method will create the client credentials to query users for their
-        tokens.
-
-        Input:
-            - user: Spotify username as a string of alphaneumeric characters
-            - scope: Is the authentication requirement necessitated by the
-                     program to proceed
-
-        Output:
-            - Top Tracks Sesh:
-            - User: The string of characters that is the user so we can store
-                    it in the DB
-            - Top Track IDs: List of strings of the top 50 tracks for a user
-        '''
-        user_id = user_id
-        session = self.Session()
-
-        # Generates a list of top 50 song IDs in a user's library
-        top_trx = spot_session.current_user_top_tracks(
-                                                limit=50,
-                                                time_range='medium_term'
-                                                )
-        top_50_trx_ids = [top_trx[
-                            'items'
-                                ][x][
-                                    'id'
-                                        ] for x in range(
-                                                        len(
-                                                            top_trx[
-                                                                'items'
-                                                                ]
-                                                            )
+            all_tracks_ids = []
+            for playlist_id in playlist_ids:
+                playlist_trx = spot_session.playlist_tracks(
+                                                        playlist_id,
+                                                        offset=1,
+                                                        fields='items.track.id'
                                                         )
-                          ]
+                for trx in playlist_trx['items']:
+                    all_tracks_ids.append(trx['track']['id'])
+        else:
+            playlist_ids = []
+            for i in range(10):
+                playlist_ids.append(playlists['items'][i]['id'])
 
-        # Track audio features for one tracks
-        top_50_aud_feat = spot_session.audio_features(tracks=top_50_trx_ids)
+            all_tracks_ids = []
+            for playlist_id in playlist_ids:
+                playlist_trx = spot_session.playlist_tracks(
+                                                        playlist_id,
+                                                        offset=1,
+                                                        fields='items.track.id'
+                                                        )
+                for trx in playlist_trx['items']:
+                    all_tracks_ids.append(trx['track']['id'])
 
-        # Updates users/tokens tables
+        user2_top_50_aud_feat = spot_session.audio_features(
+                                                    tracks=random.sample(
+                                                                all_tracks_ids,
+                                                                50
+                                                                )
+                                                        )
 
-        return {
-            'spotify connect': spot_cc,
-            'Current User Info': current_user_info,
-            'Tokens Info': token_info,
-            f'Top Track IDs {user_id}': top_50_trx_ids,
-            'Track Audio Features': top_50_aud_feat,
-            'Spot Sesh': spot_session
-        }
+        return user2_top_50_aud_feat
 
 
 class CreatePlaylist:
@@ -343,8 +347,8 @@ class CreatePlaylist:
     def create_playlist(self,
                         user1_top_aud_feat,
                         user2_top_aud_feat,
-                        spot_sesh,
-                        current_user_info,
+                        spot_session,
+                        user_info,
                         user2=None
                         ):
         """
@@ -361,14 +365,14 @@ class CreatePlaylist:
         """
         user1_top_aud_feat = user1_top_aud_feat
         user2_top_aud_feat = user2_top_aud_feat
-        current_user_info = current_user_info
+        user_info = user_info
         user2 = user2
-        spot_session = spot_sesh
+        spot_session = spot_session
 
         if user2 is not None:
             playlist_name = f"Mine and {user2}'s music child"
         else:
-            playlist_name = f"{current_user_info['display_name']}'s lonely\
+            playlist_name = f"{user_info['display_name']}'s lonely\
                             playlist"
 
         user1_df = pd.DataFrame(user1_top_aud_feat)
@@ -378,7 +382,7 @@ class CreatePlaylist:
                                                     inplace=False,
                                                     subset='id'
                                                     )
-        users_top_trx_id = random(sample(list(users_top_trx['id']), 5))
+        users_top_trx_id = random.sample(list(users_top_trx['id']), 5)
         recs = spot_session.recommendations(
                                     seed_tracks=users_top_trx_id,
                                     limit=50,
@@ -412,14 +416,14 @@ class CreatePlaylist:
             tracks.append(_['id'])
 
         playlist = spot_session.user_playlist_create(
-                                                    user=current_user_info[
-                                                                        'id'
-                                                                        ],
+                                                    user=user_info[
+                                                                    'id'
+                                                                    ],
                                                     name=playlist_name,
                                                     public=True
                                                 )
         spot_session.user_playlist_add_tracks(
-                                            user=current_user_info['id'],
+                                            user=user_info['id'],
                                             playlist_id=playlist['id'],
                                             tracks=tracks
                                             )

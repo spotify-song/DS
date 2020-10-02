@@ -49,11 +49,11 @@ class Tokens(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     access_token = Column(String, unique=True, nullable=False)
-    token_type = Column(String, unique=False, nullable=False)
-    expires_in = Column(Integer, unique=False, nullable=False)
-    refresh_token = Column(String, unique=True, nullable=False)
-    scope = Column(String, unique=False, nullable=False)
-    expires_at = Column(Integer, unique=False, nullable=False)
+    token_type = Column(String, unique=False)
+    expires_in = Column(Integer, unique=False)
+    refresh_token = Column(String, unique=True)
+    scope = Column(String, unique=False)
+    expires_at = Column(Integer, unique=False)
     user = Column(String, ForeignKey('user.id'))
 
     def __repr__(self):
