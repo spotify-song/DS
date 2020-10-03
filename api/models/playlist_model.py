@@ -66,11 +66,10 @@ async def users(user_id_1, user_id_2):
                                 user_info=user1['user_info'],
                                 user2=user_id_2
                                 )
-    
+
     return {
             "playlist_uri": playlist['URI'],
             }
-
 
 
 @router.post('/uri/{playlistname}')
