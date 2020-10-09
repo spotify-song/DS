@@ -1,13 +1,12 @@
 # uvicorn main:app --reload
-from 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from dotenv import load_dotenv
 
 from api.visualization import visualize
-# from visualization import visualize
 from api.models import playlist_model
+# from visualization import visualize
 # from models import playlist_model
 
 load_dotenv()
@@ -40,4 +39,4 @@ def create_app():
 
 
 if __name__ == '__main__':
-    uvicorn.run(app)
+    uvicorn.run(create_app())

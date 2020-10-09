@@ -16,8 +16,12 @@ from sqlalchemy import create_engine, update
 from sqlalchemy.ext.declarative import declarative_base
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
+# use in production
 import api.models.my_db
 from api.models.my_db import *
+# use in jupyter
+# import models.my_db
+# from models.my_db import *
 
 
 class UserData:
@@ -35,13 +39,14 @@ class UserData:
         # Spot Creds/Auth
         self.client_secret = getenv('SPOTIFY_CLIENT_SECRET')
         self.client_id = getenv('SPOTIFY_CLIENT_ID')
+        self.user_id = getenv('USER_ID')
 
         # change for deplpoyment
         self.uri = getenv('uri')
 
         # Scopes: User top track; creates playlist
         self.scope = 'playlist-modify-public user-library-read user-top-read'
-        self.cache_path = ('../.user_cache')
+        self.cache_path = '../.user_cache'
 
         # Connects to DB
         self.engine = create_engine(getenv('DATABASE_URL'))
@@ -52,7 +57,7 @@ class UserData:
                                 )
         self.base = declarative_base()
 
-    def check_for_user(self):
+    def check_for_user(self, user_id):
         """
         Checks for user in DB.
 
@@ -69,6 +74,7 @@ class UserData:
         client_secret = self.client_secret
         cache_path = self.cache_path
         client_id = self.client_id
+        user_id = user_id
         session = self.Session()
         redirect_uri = self.uri
         engine = self.engine
@@ -76,30 +82,31 @@ class UserData:
         Base = self.base
 
         spot_cc = spotipy.oauth2.SpotifyOAuth(
-                                        username='',
+                                        username=user_id,
                                         client_id=client_id,
                                         client_secret=client_secret,
                                         cache_path=cache_path,
                                         scope=scope,
-                                        redirect_uri=redirect_uri
+                                        redirect_uri=redirect_uri,
+                                        show_dialog=True
                                         )
 
-        spot_session = spotipy.Spotify(auth_manager=spot_cc)
+#         token = util.prompt_for_user_token(
+#                                     username=user_id,
+#                                     client_id=client_id,
+#                                     client_secret=client_secret,
+#                                     scope=scope,
+#                                     redirect_uri=redirect_uri
+#                                     )
 
+        spot_session = spotipy.Spotify(oauth_manager=spot_cc)
         user_info = spot_session.current_user()
 
         user = User(
-                    id=user_info['id'],
+                    id=user_id,
                     display_name=user_info['display_name']
                     )
 
-        # update user and commit, then update token, and commit
-        display_name_q = session.query(
-                                        User
-                                        ).filter(
-                                                User.display_name ==
-                                                user.display_name
-                                                ).first()
         user_id_q = session.query(
                                 User
                                 ).filter(
@@ -107,10 +114,31 @@ class UserData:
                                         user.id
                                         ).first()
 
-        # checking if user exists, if not then add user and token
-        # if exists, check if token exists, if not add
-        # if token exists, update using refresh_key
-        if (display_name_q is None) or (user_id_q is None):
+        if user_id_q is None:
+
+            spot_cc = spotipy.oauth2.SpotifyOAuth(
+                                            username=user_id,
+                                            client_id=client_id,
+                                            client_secret=client_secret,
+                                            cache_path=cache_path,
+                                            scope=scope,
+                                            redirect_uri=redirect_uri,
+                                            requests_timeout=300,
+                                            show_dialog=True
+                                            )
+
+#             token = util.prompt_for_user_token(
+#                                         username=user_id,
+#                                         client_id=client_id,
+#                                         client_secret=client_secret,
+#                                         scope=scope,
+#                                         redirect_uri=redirect_uri
+#                                         )
+
+            spot_session = spotipy.Spotify(oauth_manager=spot_cc)
+
+            user_info = spot_session.current_user()
+
             token_info = spot_cc.get_access_token(as_dict=True)
             session.add(user)
             session.commit()
@@ -137,6 +165,30 @@ class UserData:
             if token_q is None:
                 print(f"We don't have a token for {user.display_name},\
                         adding new token")
+
+                spot_cc = spotipy.oauth2.SpotifyOAuth(
+                                                username=user_id,
+                                                client_id=client_id,
+                                                client_secret=client_secret,
+                                                cache_path=cache_path,
+                                                scope=scope,
+                                                redirect_uri=redirect_uri,
+                                                requests_timeout=300,
+                                                show_dialog=True
+                                                )
+
+#                 token = util.prompt_for_user_token(
+#                                             username=user_id,
+#                                             client_id=client_id,
+#                                             client_secret=client_secret,
+#                                             scope=scope,
+#                                             redirect_uri=redirect_uri
+#                                             )
+
+                spot_session = spotipy.Spotify(oauth_manager=spot_cc)
+
+                user_info = spot_session.current_user()
+
                 token_info = spot_cc.get_access_token(as_dict=True)
                 token = Tokens(
                                 # "token_info" to add tokens to db
@@ -153,9 +205,22 @@ class UserData:
             # if the token exists refresh it, and update the value in table
             else:
                 print(f"{user.display_name} has a token, updating it")
-                accs_token_refresh = spot_cc.refresh_access_token(
-                                                        token_q.refresh_token
-                                                        )
+
+                spot_cc = spotipy.oauth2.SpotifyOAuth(
+                                                username=user_id,
+                                                client_id=client_id,
+                                                client_secret=client_secret,
+                                                cache_path=cache_path,
+                                                scope=scope,
+                                                redirect_uri=redirect_uri,
+                                                requests_timeout=300,
+                                                show_dialog=True
+                                                )
+
+                accs_token_refresh = spot_cc.get_access_token(
+                                                    token_q.refresh_token
+                                                    )
+
                 update_token = update(
                                     Tokens
                                     ).where(
@@ -174,6 +239,7 @@ class UserData:
                                                             'expires_at'
                                                                 ]
                                                 )
+
                 session.execute(update_token)
                 session.commit()
 
@@ -195,9 +261,12 @@ class UserData:
                                                         )
                           ]
         # Track audio features for one tracks
-        top_50_aud_feat = spot_session.audio_features(tracks=top_50_trx_ids)
+        top_50_aud_feat = spot_session.audio_features(
+                                                    tracks=top_50_trx_ids
+                                                    )
 
         return {
+                "spot_cc": spot_cc,
                 "session": session,
                 "spot_session": spot_session,
                 "user_info": user_info,

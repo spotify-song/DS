@@ -53,7 +53,7 @@ async def users(user_id_1, user_id_2):
     user_id_1 = user_id_1
     user_id_2 = user_id_2
     users_data = UserData()
-    user1 = users_data.check_for_user()
+    user1 = users_data.check_for_user(user_id=user_id_1)
     user2_top_50_aud_feat = users_data.get_playlists_trx(
                                         spot_session=user1['spot_session'],
                                         user2=user_id_2

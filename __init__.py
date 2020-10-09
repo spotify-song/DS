@@ -10,7 +10,7 @@
 
 # Initialize FastAPI app
 
-# uvicorn main:app --reload
+# uvicorn __init__:APP --reload
 
 from main import create_app
 
