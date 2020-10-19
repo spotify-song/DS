@@ -17,11 +17,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
 # use in production
-import api.models.my_db
-from api.models.my_db import *
+# import api.models.my_db
+# from api.models.my_db import *
+
 # use in jupyter
-# import models.my_db
-# from models.my_db import *
+import models.my_db
+from models.my_db import *
 
 
 class UserData:
@@ -57,7 +58,7 @@ class UserData:
                                 )
         self.base = declarative_base()
 
-    def check_for_user(self, user_id):
+    def check_for_user(self, access_token, refresh_token):
         """
         Checks for user in DB.
 
@@ -91,14 +92,6 @@ class UserData:
                                         show_dialog=True
                                         )
 
-#         token = util.prompt_for_user_token(
-#                                     username=user_id,
-#                                     client_id=client_id,
-#                                     client_secret=client_secret,
-#                                     scope=scope,
-#                                     redirect_uri=redirect_uri
-#                                     )
-
         spot_session = spotipy.Spotify(oauth_manager=spot_cc)
         user_info = spot_session.current_user()
 
@@ -126,14 +119,6 @@ class UserData:
                                             requests_timeout=300,
                                             show_dialog=True
                                             )
-
-#             token = util.prompt_for_user_token(
-#                                         username=user_id,
-#                                         client_id=client_id,
-#                                         client_secret=client_secret,
-#                                         scope=scope,
-#                                         redirect_uri=redirect_uri
-#                                         )
 
             spot_session = spotipy.Spotify(oauth_manager=spot_cc)
 
@@ -395,6 +380,53 @@ class UserData:
                                                         )
 
         return user2_top_50_aud_feat
+
+
+class CheckForUser:
+    spot_creds = None     # Gathers credentials for song data
+    spot_session = None   # Starts a spotify session
+    user_token = None     # token for a given user
+    accs_token = None     # Uses cred access token (also to refresh tokens)
+    refresh_token = None  # Obtained from accs_token from client creds
+
+    def __init__(self):
+
+        load_dotenv()
+
+        # Spot Creds/Auth
+        self.client_secret = getenv('SPOTIFY_CLIENT_SECRET')
+        self.client_id = getenv('SPOTIFY_CLIENT_ID')
+        self.user_id = getenv('USER_ID')
+
+        # change for deplpoyment
+        self.uri = getenv('uri')
+
+        # Scopes: User top track; creates playlist; reads full library
+        self.scope = 'playlist-modify-public user-library-read user-top-read'
+        self.cache_path = '../.user_cache'
+
+        # Connects to DB
+        self.engine = create_engine(getenv('DATABASE_URL'))
+        self.Session = sessionmaker(
+                                autocommit=False,
+                                autoflush=False,
+                                bind=self.engine
+                                )
+        self.base = declarative_base()
+
+    def check_user(self, refresh_token):
+        """
+        Checks to see if user exists in DB
+
+        Input:
+            - Refresh_token: String of alphanumeric values
+            - Access_token: String of alphanumeric values
+        Returns:
+            - True: Bool, if user exists and token is usuable
+            - False: Bool, else
+            
+        """
+
 
 
 class CreatePlaylist:
