@@ -17,15 +17,15 @@ SessionLocal = sessionmaker(
                         autoflush=False,
                         bind=engine
                         )
-#
 Base = declarative_base()
 
 
 class User(Base):
     __tablename__ = 'user'
 
-    id = Column(String, primary_key=True, index=True)
-    display_name = Column(String, unique=True, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    spot_id = Column(String, unique=True, nullable=False)
+    display_name = Column(String, unique=False, nullable=True)
 
     # Backref allows you to update values in a different table
     # set the table name then the back arg will be used as the psudo
@@ -38,10 +38,11 @@ class User(Base):
     user_playlist = relationship('UserPlaylist', backref='user_id')
 
     def __repr__(self):
-        return "<User(id='%s', display_name='%s')>" % (
-                                                    self.id,
-                                                    self.display_name
-                                                    )
+        return "<User(id='%s', spot_id='%s', display_name='%s')>" % (
+                                                                self.id,
+                                                                self.spot_id,
+                                                                self.display_name
+                                                                )
 
 
 class Tokens(Base):
@@ -53,24 +54,23 @@ class Tokens(Base):
     expires_in = Column(Integer, unique=False)
     refresh_token = Column(String, unique=True)
     scope = Column(String, unique=False)
-    expires_at = Column(Integer, unique=False)
-    user = Column(String, ForeignKey('user.id'))
+    user = Column(Integer, ForeignKey('user.id'))
 
     def __repr__(self):
         return "<Tokens(\
+                        id='%s',\
                         access_token='%s',\
                         token_type='%s',\
                         expires_in='%s',\
                         refresh_token='%s',\
                         scope='%s',\
-                        expires_at='%s',\
                         user='%s')>" % (
+                                        self.id,
                                         self.access_token,
                                         self.token_type,
                                         self.expires_in,
                                         self.refresh_token,
                                         self.scope,
-                                        self.expires_at,
                                         self.user
                                         )
 
@@ -78,31 +78,34 @@ class Tokens(Base):
 class Tracks(Base):
     __tablename__ = 'tracks'
 
-    id = Column(String, primary_key=True)
-    danceability = Column(Float)
-    energy = Column(Float)
-    key = Column(Integer)
-    loudness = Column(Float)
-    mode = Column(Integer)
-    speechiness = Column(Float)
-    acousticness = Column(Float)
-    instrumentalness = Column(Float)
-    valence = Column(Float)
-    liveness = Column(Float)
-    tempo = Column(Float)
-    duration_ms = Column(Integer)
-    time_signature = Column(Integer)
+    id = Column(Integer, primary_key=True)
+    danceability = Column(Float, nullable=True)
+    energy = Column(Float, nullable=True)
+    key = Column(Integer, nullable=True)
+    loudness = Column(Float, nullable=True)
+    mode = Column(Integer, nullable=True)
+    speechiness = Column(Float, nullable=True)
+    acousticness = Column(Float, nullable=True)
+    instrumentalness = Column(Float, nullable=True)
+    valence = Column(Float, nullable=True)
+    liveness = Column(Float, nullable=True)
+    tempo = Column(Float, nullable=True)
+    duration_ms = Column(Integer, nullable=True)
+    time_signature = Column(Integer, nullable=True)
+    spot_id = Column(String, nullable=False)
 
     user_ply_lst = relationship('UserPlaylist',
                                 backref='track_id',
                                 uselist=False)
 
     def __repr__(self):
-        return "<Tracks Data(danceability='%s', energy='%s', key='%s',\
+        return "<Tracks Data(id='%s', danceability='%s', energy='%s', key='%s',\
                             loudness='%s', mode='%s', speechiness='%s',\
                             acousticness='%s', instrumentalness='%s',\
                             liveness='%s', valence='%s', tempo='%s',\
-                            duration_ms='%s', time_signature='%s')>" % (
+                            duration_ms='%s', time_signature='%s',\
+                            spot_id='%s')>" % (
+                                                        self.id,
                                                         self.danceability,
                                                         self.energy,
                                                         self.key,
@@ -115,7 +118,8 @@ class Tracks(Base):
                                                         self.liveness,
                                                         self.tempo,
                                                         self.duration_ms,
-                                                        self.time_signature
+                                                        self.time_signature,
+                                                        self.spot_id
                                                         )
 
 
@@ -129,14 +133,16 @@ class UserPlaylist(Base):
     __tablename__ = 'user_playlist'
 
     id = Column(Integer, primary_key=True, index=True)
-    u_id = Column(String, ForeignKey('user.id'))           # User_ID
-    tracks_id = Column(String, ForeignKey('tracks.id'))    # Track_ID
-    uri = Column(String)                                   # Playlist_URI
+    u_id = Column(Integer, ForeignKey('user.id'))                          # User_ID
+    tracks_id = Column(Integer, ForeignKey('tracks.id'), nullable=True)    # Track_ID
+    uri = Column(String, nullable=True)                                    # Playlist_URI
 
     def __repr__(self):
-        return "<User Playlist(u_id='%s',\
+        return "<User Playlist(id='%s',\
+                                u_id='%s',\
                                 tracks_id='%s',\
                                 uri='%s')>" % (
+                                        self.id,
                                         self.u_id,
                                         self.tracks_id,
                                         self.uri

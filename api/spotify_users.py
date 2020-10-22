@@ -58,7 +58,7 @@ class UserData:
                                 )
         self.base = declarative_base()
 
-    def check_for_user(self, access_token, refresh_token):
+    def get_user_top_trx(self, token_info, user_id):
         """
         Checks for user in DB.
 
@@ -82,8 +82,16 @@ class UserData:
         scope = self.scope
         Base = self.base
 
+        user = User()
+        user_id_q = session.query(
+                                User
+                                ).filter(
+                                        User.id ==
+                                        user_id
+                                        ).first()
+
         spot_cc = spotipy.oauth2.SpotifyOAuth(
-                                        username=user_id,
+                                        username=user_id_q.display_name,
                                         client_id=client_id,
                                         client_secret=client_secret,
                                         cache_path=cache_path,
@@ -92,143 +100,18 @@ class UserData:
                                         show_dialog=True
                                         )
 
-        spot_session = spotipy.Spotify(oauth_manager=spot_cc)
-        user_info = spot_session.current_user()
+        expired_token = spot_cc.is_token_expired(token_info)
 
-        user = User(
-                    id=user_id,
-                    display_name=user_info['display_name']
-                    )
-
-        user_id_q = session.query(
-                                User
-                                ).filter(
-                                        User.id ==
-                                        user.id
-                                        ).first()
-
-        if user_id_q is None:
-
-            spot_cc = spotipy.oauth2.SpotifyOAuth(
-                                            username=user_id,
-                                            client_id=client_id,
-                                            client_secret=client_secret,
-                                            cache_path=cache_path,
-                                            scope=scope,
-                                            redirect_uri=redirect_uri,
-                                            requests_timeout=300,
-                                            show_dialog=True
-                                            )
-
-            spot_session = spotipy.Spotify(oauth_manager=spot_cc)
-
-            user_info = spot_session.current_user()
-
-            token_info = spot_cc.get_access_token(as_dict=True)
-            session.add(user)
+        if expired_token:
+            token = Tokens()
+            user_token_q = session.query(Tokens).filter(Tokens.user==user_id_query.id).first()
+            token_refresh = spot_cc.refresh_access_token(auth=token_info['refresh_token'])
+            user_token_q.access_token = token_refresh['access_token']
             session.commit()
-            token = Tokens(
-                            access_token=token_info['access_token'],
-                            token_type=token_info['token_type'],
-                            expires_in=token_info['expires_in'],
-                            refresh_token=token_info['refresh_token'],
-                            scope=token_info['scope'],
-                            expires_at=token_info['expires_at'],
-                            user_token=user
-                        )
-            session.add(token)
-            session.commit()
-        # Else, check if user has corresponding token that is not expired
         else:
-            print(f"User {user.display_name} already exists in DataBase;\
-                    checking for token")
-            token_q = session.query(
-                                    Tokens
-                                    ).filter(
-                                            Tokens.user == user.id
-                                            ).first()
-            if token_q is None:
-                print(f"We don't have a token for {user.display_name},\
-                        adding new token")
+            spot_session = spotipy.Spotify(auth=token_info['access_token'])
 
-                spot_cc = spotipy.oauth2.SpotifyOAuth(
-                                                username=user_id,
-                                                client_id=client_id,
-                                                client_secret=client_secret,
-                                                cache_path=cache_path,
-                                                scope=scope,
-                                                redirect_uri=redirect_uri,
-                                                requests_timeout=300,
-                                                show_dialog=True
-                                                )
-
-#                 token = util.prompt_for_user_token(
-#                                             username=user_id,
-#                                             client_id=client_id,
-#                                             client_secret=client_secret,
-#                                             scope=scope,
-#                                             redirect_uri=redirect_uri
-#                                             )
-
-                spot_session = spotipy.Spotify(oauth_manager=spot_cc)
-
-                user_info = spot_session.current_user()
-
-                token_info = spot_cc.get_access_token(as_dict=True)
-                token = Tokens(
-                                # "token_info" to add tokens to db
-                                access_token=token_info['access_token'],
-                                token_type=token_info['token_type'],
-                                expires_in=token_info['expires_in'],
-                                refresh_token=token_info['refresh_token'],
-                                scope=token_info['scope'],
-                                expires_at=token_info['expires_at'],
-                                user_token=user
-                            )
-                session.add(token)
-                session.commit()
-            # if the token exists refresh it, and update the value in table
-            else:
-                print(f"{user.display_name} has a token, updating it")
-
-                spot_cc = spotipy.oauth2.SpotifyOAuth(
-                                                username=user_id,
-                                                client_id=client_id,
-                                                client_secret=client_secret,
-                                                cache_path=cache_path,
-                                                scope=scope,
-                                                redirect_uri=redirect_uri,
-                                                requests_timeout=300,
-                                                show_dialog=True
-                                                )
-
-                accs_token_refresh = spot_cc.get_access_token(
-                                                    token_q.refresh_token
-                                                    )
-
-                update_token = update(
-                                    Tokens
-                                    ).where(
-                                            Tokens.user == user.id
-                                    ).values(
-                                        access_token=accs_token_refresh[
-                                                            'access_token'
-                                                                ],
-                                        expires_in=accs_token_refresh[
-                                                            'expires_in'
-                                                                ],
-                                        refresh_token=accs_token_refresh[
-                                                            'refresh_token'
-                                                                ],
-                                        expires_at=accs_token_refresh[
-                                                            'expires_at'
-                                                                ]
-                                                )
-
-                session.execute(update_token)
-                session.commit()
-
-        # Generates a list of top 50 song IDs in a user's library
+        # 6 month term
         top_trx = spot_session.current_user_top_tracks(
                                                 limit=50,
                                                 time_range='medium_term'
@@ -254,7 +137,6 @@ class UserData:
                 "spot_cc": spot_cc,
                 "session": session,
                 "spot_session": spot_session,
-                "user_info": user_info,
                 "user_id": user.id,
                 "top_50_trx_ids": top_50_trx_ids,
                 "top_50_aud_feat": top_50_aud_feat
