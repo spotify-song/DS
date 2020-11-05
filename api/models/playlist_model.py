@@ -40,8 +40,8 @@ class PlaylistURI(BaseModel):
 
 
 # route to get user IDs
-@router.get('/users/{user_id_1,user_id_2}')
-async def users(user_id_1, user_id_2):
+@router.post('/users/{token_info,user_id}')
+async def users(token_info, user_id):
     """
     This function takes in a series of user IDs
     ### Path Parameter
@@ -50,25 +50,10 @@ async def users(user_id_1, user_id_2):
     ### Response
     'playlist_uri': string of alphanumeric values that generate a playlist
     """
-    user_id_1 = user_id_1
-    user_id_2 = user_id_2
-    users_data = UserData()
-    user1 = users_data.check_for_user(user_id=user_id_1)
-    user2_top_50_aud_feat = users_data.get_playlists_trx(
-                                        spot_session=user1['spot_session'],
-                                        user2=user_id_2
-                                        )
-    playlist_gen = CreatePlaylist()
-    playlist = playlist_gen.create_playlist(
-                                user1_top_aud_feat=user1['top_50_aud_feat'],
-                                user2_top_aud_feat=user2_top_50_aud_feat,
-                                spot_session=user1['spot_session'],
-                                user_info=user1['user_info'],
-                                user2=user_id_2
-                                )
+    
 
     return {
-            "playlist_uri": playlist['URI'],
+            "this link will take all of the songs from each user and update the database"
             }
 
 
@@ -82,5 +67,5 @@ async def auth(playlistname):
     ### Reponse
     URI code to navigate user to the playlist generated.
     '''
-    return {'Playlist URI': playlistname}
+    return {"updates database with all of the user's music"}
 # get token from both users to be able to access both of their libraries

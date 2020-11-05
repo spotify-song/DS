@@ -58,19 +58,28 @@ class UserData:
                                 )
         self.base = declarative_base()
 
-    def get_user_top_trx(self, token_info, user_id):
-        """
-        Checks for user in DB.
+    def get_user_top_trx(self, token_info: str, user_id: str):
+        """Fetches user top track IDs from SpotifyAPI.
+        
+        Makes calls to the SpotifyAPI to gather a given user's top tracks
+        from the last 7 days (short term), 6 months (medium term), and all
+        time (long term).
 
-        Input:
-            - current_user_info: This object contains ID and displa_name for
-              the user
-            - spot_cc: Object for the spotify credentials connection
+        Args:
+            token_info: JSON object containing access and refresh token information
+              for the user
+            user_id: Spotify ID as a string object
 
-        Output:
-            - session: DB Session
-            - user1: User object
-            - token_info: not sure this is entrirely necessary yet
+        Returns:
+            A dict of key/value pairs contianing objects utilized in the following methods
+            
+            spot_cc: Spotify authentication object which will by used in other methods
+            session: DataBase session object that is can be used for other methods
+              running asyncronously
+            spot_session: Spotify API client that is used to obtain user and track data
+            user_id: Integer value for the database ID
+            terms: Terms are broken down into three key/val pairs containing lists of strings
+              for short term, medium term, and long term
         """
         client_secret = self.client_secret
         cache_path = self.cache_path
@@ -86,7 +95,7 @@ class UserData:
         user_id_q = session.query(
                                 User
                                 ).filter(
-                                        User.id ==
+                                        User.spot_id ==
                                         user_id
                                         ).first()
 
@@ -97,79 +106,76 @@ class UserData:
                                         cache_path=cache_path,
                                         scope=scope,
                                         redirect_uri=redirect_uri,
-                                        show_dialog=True
                                         )
 
-        expired_token = spot_cc.is_token_expired(token_info)
+        token_info = spot_cc.refresh_access_token(token_info['refresh_token'])
 
-        if expired_token:
-            token = Tokens()
-            user_token_q = session.query(Tokens).filter(Tokens.user==user_id_query.id).first()
-            token_refresh = spot_cc.refresh_access_token(auth=token_info['refresh_token'])
-            user_token_q.access_token = token_refresh['access_token']
-            session.commit()
-        else:
-            spot_session = spotipy.Spotify(auth=token_info['access_token'])
+        # update token in DB
+        token = Tokens()
+        user_token_q = session.query(Tokens).filter(Tokens.user==user_id_q.id).first()
+        user_token_q.access_token = token_info['access_token']
+        session.commit()
 
-        # 6 month term
-        top_trx = spot_session.current_user_top_tracks(
+        spot_session = spotipy.Spotify(auth=token_info['access_token'])
+        
+        terms = ['short_term', 'medium_term', 'long_term']
+        trk_ids_lst = []
+
+        for term in terms:
+            top_trx = spot_session.current_user_top_tracks(
                                                 limit=50,
-                                                time_range='medium_term'
+                                                time_range=term
                                                 )
-        top_50_trx_ids = [top_trx[
-                            'items'
-                                ][x][
-                                    'id'
-                                        ] for x in range(
-                                                        len(
-                                                            top_trx[
-                                                                'items'
-                                                                ]
-                                                            )
-                                                        )
-                          ]
-        # Track audio features for one tracks
-        top_50_aud_feat = spot_session.audio_features(
-                                                    tracks=top_50_trx_ids
-                                                    )
+            globals()[term + '_trx'] = [top_trx[
+                                            'items'
+                                                ][x][
+                                                    'id'
+                                                        ] for x in range(
+                                                                        len(
+                                                                            top_trx[
+                                                                                'items'
+                                                                                ]))]
+            if len(globals()[term + '_trx']) != 0:
+                trk_ids_lst.append(globals()[term + '_trx'])
+            else:
+                continue
 
         return {
                 "spot_cc": spot_cc,
                 "session": session,
                 "spot_session": spot_session,
-                "user_id": user.id,
-                "top_50_trx_ids": top_50_trx_ids,
-                "top_50_aud_feat": top_50_aud_feat
+                "user_id": user_id_q.id,
+                "short_term_trx": short_term_trx,
+                "medium_term_trx": medium_term_trx,
+                "long_term_trx": long_term_trx
                 }
 
-    def add_tracks(self, top_50_trx_ids, top_50_aud_feat, session):
-        """
-        This function is used when the user does not have their top 50 trx in
-        our db, and we need to add them after adding the user.
+    def add_tracks(self, trx_ids, aud_feat, session):
+        """Adds track audio feature information to DB.
 
-        Input:
-            - top_50_trx_ids: List of 50 alpha-neumeric track IDs
-            - top_50_aud_feat: List of dicts containing feat data
+        Args:
+            top_50_trx_ids: List of 50 alpha-neumeric track IDs
+            top_50_aud_feat: List of dicts containing feat data
+            session: DB connection object
 
-        Output:
-            - Updates DB with the track id and track feature data
-            - DB session: object
+        Returns:
+            Updates DB with the track id and track feature data
+            session: object
         """
-        top_50_aud_feat = top_50_aud_feat
-        top_50_trx_ids = top_50_trx_ids
+        aud_feat = aud_feat
+        trx_ids = trx_ids
         session = session
 
         trx = []
-        for k, v in enumerate(top_50_aud_feat):
+        for k, v in enumerate(aud_feat):
             trk_sesh = session.query(
                                     Tracks
                                     ).filter(
-                                            Tracks.id == top_50_trx_ids[k]
+                                            Tracks.spot_id == trx_ids[k]
                                             ).first()
             if trk_sesh is not None:
                 continue
             globals()['trk_' + str(k)] = Tracks(
-                                        id=top_50_trx_ids[k],
                                         danceability=v['danceability'],
                                         energy=v['energy'],
                                         key=v['key'],
@@ -182,7 +188,8 @@ class UserData:
                                         liveness=v['liveness'],
                                         tempo=v['tempo'],
                                         duration_ms=v['duration_ms'],
-                                        time_signature=v['time_signature']
+                                        time_signature=v['time_signature'],
+                                        spot_id=trx_ids[k]
                                         )
             trx.append(globals()['trk_' + str(k)])
 
@@ -195,12 +202,14 @@ class UserData:
         """
         Adds newly created playlist to DB with current user.
 
-        Input:
-            - Plalist URI: string of characters in the following form:
+        Args:
+            playlist_uri: string of characters in the following form:
                 'spotify:playlist:2Pk3OLPiVXIZHieWs5ZGHp'
+            session: DB object session
+            user_id: integer
 
-        Output:
-            - Updates playlist DB
+        Returns:
+            Updates playlist DB
         """
         user_id = user_id
         session = session
@@ -216,100 +225,46 @@ class UserData:
 
         return None
 
-    def get_playlists_trx(self, spot_session, user2):
+    def get_playlists_trx(self, spot_session, user_id):
         """
-        Gets user 2 playlists and tracks
+        Gets all user playlists tracks
+
+        Args:
+            spot_session: Object from get_user_top_trs()
+            user_id: String from get_user_top_trs() dict
+
+        Returns:
+             
         """
         spot_session = spot_session
-        user2 = user2
+        user_id = user_id
 
-        playlists = spot_session.user_playlists(user2)
-
-        if len(playlists['items']) < 10:
-            playlist_ids = []
-            for playlist_item in playlists['items']:
-                playlist_ids.append(playlist_item['id'])
-
-            all_tracks_ids = []
-            for playlist_id in playlist_ids:
-                playlist_trx = spot_session.playlist_tracks(
-                                                        playlist_id,
-                                                        offset=1,
-                                                        fields='items.track.id'
-                                                        )
-                for trx in playlist_trx['items']:
-                    all_tracks_ids.append(trx['track']['id'])
-        else:
-            playlist_ids = []
-            for i in range(10):
-                playlist_ids.append(playlists['items'][i]['id'])
-
-            all_tracks_ids = []
-            for playlist_id in playlist_ids:
-                playlist_trx = spot_session.playlist_tracks(
-                                                        playlist_id,
-                                                        offset=1,
-                                                        fields='items.track.id'
-                                                        )
-                for trx in playlist_trx['items']:
-                    all_tracks_ids.append(trx['track']['id'])
-
-        user2_top_50_aud_feat = spot_session.audio_features(
-                                                    tracks=random.sample(
-                                                                all_tracks_ids,
-                                                                50
-                                                                )
-                                                        )
-
-        return user2_top_50_aud_feat
+        playlists = spot_session.user_playlists(user_id)
 
 
-class CheckForUser:
-    spot_creds = None     # Gathers credentials for song data
-    spot_session = None   # Starts a spotify session
-    user_token = None     # token for a given user
-    accs_token = None     # Uses cred access token (also to refresh tokens)
-    refresh_token = None  # Obtained from accs_token from client creds
+        if len(playlists['items']) == 0:
+            raise Exception('user has no playlists')
 
-    def __init__(self):
+        playlist_ids = []
+        for i in range(len(playlists['items'])):
+            playlist_ids.append(playlists['items'][i]['id'])
 
-        load_dotenv()
+        all_tracks_ids = []
+        for playlist_id in playlist_ids:
+            playlist_trx = spot_session.playlist_tracks(
+                                                    playlist_id,
+                                                    offset=1,
+                                                    fields='items.track.id'
+                                                    )
+            for trx in playlist_trx['items']:
+                if trx['track'] is None:
+                    continue
+                all_tracks_ids.append(trx['track']['id'])
 
-        # Spot Creds/Auth
-        self.client_secret = getenv('SPOTIFY_CLIENT_SECRET')
-        self.client_id = getenv('SPOTIFY_CLIENT_ID')
-        self.user_id = getenv('USER_ID')
-
-        # change for deplpoyment
-        self.uri = getenv('uri')
-
-        # Scopes: User top track; creates playlist; reads full library
-        self.scope = 'playlist-modify-public user-library-read user-top-read'
-        self.cache_path = '../.user_cache'
-
-        # Connects to DB
-        self.engine = create_engine(getenv('DATABASE_URL'))
-        self.Session = sessionmaker(
-                                autocommit=False,
-                                autoflush=False,
-                                bind=self.engine
-                                )
-        self.base = declarative_base()
-
-    def check_user(self, refresh_token):
-        """
-        Checks to see if user exists in DB
-
-        Input:
-            - Refresh_token: String of alphanumeric values
-            - Access_token: String of alphanumeric values
-        Returns:
-            - True: Bool, if user exists and token is usuable
-            - False: Bool, else
-            
-        """
-
-
+        return {
+                "all_tracks_ids": all_tracks_ids,
+                }
+    
 
 class CreatePlaylist:
     def __init__(self):
@@ -338,13 +293,13 @@ class CreatePlaylist:
         This function will take the top 50 tracks for 2 users and generate a
         playlist (uri) for the users to share.
 
-        Input:
-            - user1_top_aud_feat: Top 50 track audio features (dict)
-            - user2_top_aud_feat: Top 50 track audio features (dict)
+        Args:
+            user1_top_aud_feat: Top 50 track audio features (dict)
+            user2_top_aud_feat: Top 50 track audio features (dict)
 
-        Output:
-            - uri: playlist containing a number of random tracks based on the
-                   two user's playlists and libraries.
+        Returns:
+            uri: playlist containing a number of random tracks based on the
+              two user's playlists and libraries.
         """
         user1_top_aud_feat = user1_top_aud_feat
         user2_top_aud_feat = user2_top_aud_feat
