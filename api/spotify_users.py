@@ -147,31 +147,84 @@ class UserData:
                 "user_id": user_id_q.id,
                 "short_term_trx": short_term_trx,
                 "medium_term_trx": medium_term_trx,
-                "long_term_trx": long_term_trx
+                "long_term_trx": long_term_trx,
+                "track_ids": trk_ids_lst
                 }
+    
+    def user_song_library(self, spot_session):
+        """Gathers all the saved tracks for a given user.
+        
+        Args:
+            spot_session: Spotify object which will by used in other methods
 
-    def add_tracks(self, trx_ids, aud_feat, session):
+        Returns:
+            saved_tracks: List of all the saved tracks for a given user
+        """
+        lst = []
+        offset = 0
+        result = spot.current_user_saved_tracks(offset=offset)
+        while result['next'] != None:
+            result = spot_session.current_user_saved_tracks(offset=offset)
+            lst.append(result['items'])
+            offset += 20
+
+        trk_ids_lst = []
+        for val in lst:
+            for trk in val:
+                trk_ids_lst.append(trk['track']['id'])
+
+        return trk_ids_lst
+    
+    def get_audio_features(self, track_ids, spot_session):
+        """Obtains song characteristics from the SpotifyAPI.
+        
+        The function takes in a list of song IDs as string values, and 
+        obtains audio features for individual songs.
+        
+        Args:
+            track_ids: list of strings
+            spot_session: Spotify object which will by used in other methods
+
+        Returns:
+            audio_features: dictionary containing a list of audio features for each song ID provided
+        """
+        offset = 50
+        onset = 0
+        
+        audio_feats = []
+        while offset:
+            if offset >= len(track_ids):
+                audio_feats.append(spot_session.audio_features(tracks=track_ids[onset:]))
+                break
+            audio_feats.append(spot_session.audio_features(tracks=track_ids[onset:offset]))
+            onset += 50
+            offset += 50
+        
+        audio_features_lst = []
+        for audio_feat in audio_feats:
+            for feature in audio_feat:
+                audio_features_lst.append(feature)
+
+        return audio_features_lst
+        
+
+    def add_track_aud_feat(self, aud_feat, session):
         """Adds track audio feature information to DB.
 
         Args:
-            top_50_trx_ids: List of 50 alpha-neumeric track IDs
-            top_50_aud_feat: List of dicts containing feat data
+            aud_feat: list of dictionary key value pairs containing audio features for given tracks
             session: DB connection object
 
         Returns:
             Updates DB with the track id and track feature data
             session: object
         """
-        aud_feat = aud_feat
-        trx_ids = trx_ids
-        session = session
-
         trx = []
         for k, v in enumerate(aud_feat):
             trk_sesh = session.query(
                                     Tracks
                                     ).filter(
-                                            Tracks.spot_id == trx_ids[k]
+                                            Tracks.spot_id == v['id']
                                             ).first()
             if trk_sesh is not None:
                 continue
@@ -189,7 +242,7 @@ class UserData:
                                         tempo=v['tempo'],
                                         duration_ms=v['duration_ms'],
                                         time_signature=v['time_signature'],
-                                        spot_id=trx_ids[k]
+                                        spot_id=v['id']
                                         )
             trx.append(globals()['trk_' + str(k)])
 
@@ -197,44 +250,16 @@ class UserData:
         session.commit()
 
         return session
-
-    def add_playlist(self, paylist_uri, session, user_id):
-        """
-        Adds newly created playlist to DB with current user.
-
-        Args:
-            playlist_uri: string of characters in the following form:
-                'spotify:playlist:2Pk3OLPiVXIZHieWs5ZGHp'
-            session: DB object session
-            user_id: integer
-
-        Returns:
-            Updates playlist DB
-        """
-        user_id = user_id
-        session = session
-        playlist_uri = playlist_uri
-
-        playlist = UserPlaylist(
-                            uesr_id=user_id,
-                            user=playlist_uri,
-                            tracks_id=None
-                            )
-        session.add(playlist)
-        session.commit()
-
-        return None
-
+    
     def get_playlists_trx(self, spot_session, user_id):
-        """
-        Gets all user playlists tracks
+        """Gets all user playlists tracks
 
         Args:
             spot_session: Object from get_user_top_trs()
             user_id: String from get_user_top_trs() dict
 
         Returns:
-             
+             all_tracks_ids: dictionary of tracks IDs obtained from user library
         """
         spot_session = spot_session
         user_id = user_id
@@ -264,6 +289,33 @@ class UserData:
         return {
                 "all_tracks_ids": all_tracks_ids,
                 }
+
+
+    def add_playlist(self, paylist_uri, session, user_id):
+        """Adds newly created playlist to DB with current user.
+
+        Args:
+            playlist_uri: string of characters in the following form:
+                'spotify:playlist:2Pk3OLPiVXIZHieWs5ZGHp'
+            session: DB object session
+            user_id: integer
+
+        Returns:
+            Updates playlist DB
+        """
+        user_id = user_id
+        session = session
+        playlist_uri = playlist_uri
+
+        playlist = UserPlaylist(
+                            uesr_id=user_id,
+                            user=playlist_uri,
+                            tracks_id=None
+                            )
+        session.add(playlist)
+        session.commit()
+
+        return None
     
 
 class CreatePlaylist:

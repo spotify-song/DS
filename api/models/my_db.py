@@ -38,8 +38,7 @@ class User(Base):
     user_playlist = relationship('UserPlaylist', backref='user_id')
 
     def __repr__(self):
-        return "<User(id='%s', spot_id='%s', display_name='%s')>" % (
-                                                                self.id,
+        return "<User(spot_id='%s', display_name='%s')>" % (
                                                                 self.spot_id,
                                                                 self.display_name
                                                                 )
