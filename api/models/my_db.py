@@ -1,11 +1,12 @@
+""" ``"""
+
 from os import getenv
 from dotenv import load_dotenv
 
-import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, backref
+from sqlalchemy.orm import sessionmaker, backref
 import psycopg2
 
 load_dotenv()
