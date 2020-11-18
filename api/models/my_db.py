@@ -1,4 +1,7 @@
-""" ``"""
+"""Data Base table modles.
+
+See README file for documentation, and more insight on relevant information.
+"""
 
 from os import getenv
 from dotenv import load_dotenv
@@ -7,7 +10,6 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, backref
-import psycopg2
 
 load_dotenv()
 
@@ -22,6 +24,8 @@ Base = declarative_base()
 
 
 class User(Base):
+    """User table contains relavent features that will be stored in the DB."""
+
     __tablename__ = 'user'
 
     id = Column(Integer, primary_key=True, index=True)
