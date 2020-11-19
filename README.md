@@ -29,11 +29,20 @@ Install SpotiPy and all other dependencies found in the [requirements.txt](https
 pip3 install spotipy
 ```
 
-My recommendation is to build `requirements.txt` file to install all of your dependencies all at once and simply use the following command:
+My recommendation is to build a `requirements.txt` file and install all of your dependencies at once and use the following command:
 
 ```shell
 pip3 install -r requirements.txt
 ```
+
+**Now that your repository is all set up, you need to set up step 2**
+
+### 2. Setting Up Spotify Developer Account
+
+Create your account on the [Spotify Developer site](https://developer.spotify.com) and set up your WebApp.
+
+![]()
+
 
 
 ### Data Flow
