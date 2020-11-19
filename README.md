@@ -16,15 +16,26 @@ MySounds Playlist Builder is a playlist and music recommendation system availabl
 
 ## How to replicate this project
 
-### 1. Setup
+### 1. Repository Setup
 
-Install SpotiPy with pip:
+Git clone this repo (or fork, depending on your desired involvement).
+
+Create a [conda env and kernel](https://youtu.be/6kXLUvsnhuI) or pip env.
+You can find documentation [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) for more information on managing conda environments and [here](https://docs.python-guide.org/dev/virtualenvs/) for pipenvs
+
+Install SpotiPy and all other dependencies found in the [requirements.txt](https://github.com/spotify-song/DS/blob/master/requirements.txt) file using pip3 (pip3 is for Python 3) or conda in the terminal:
 
 ```shell
 pip3 install spotipy
 ```
 
+My recommendation is to build `requirements.txt` file to install all of your dependencies all at once and simply use the following command:
 
-### Data Flow mock up
+```shell
+pip3 install -r requirements.txt
+```
+
+
+### Data Flow
 
 ![](https://github.com/spotify-song/DS/blob/master/references/Data_Flow_illu.png?raw=true)
