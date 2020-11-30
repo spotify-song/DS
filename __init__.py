@@ -1,16 +1,20 @@
-# Entry point for spoti app
-# To run app localy and generate access to data run
-# the following line of code int he terminal:
-# running with FastAPI this time
-# uvicorn main:app --reload
+"""Entry point for FastAPI application.
 
-'''Entry point for FastAPI application.'''
+To run API locally, and access FastAPI UI, run the following code into the
+terminal from the parent directory; in this case the parent directory is DS.
 
-# imports the app creation function
+Code to run: uvicorn __init__:APP --reload
 
-# Initialize FastAPI app
+uvicorn: Is the ASGI server implementations using uvloop and httpools.
 
-# uvicorn __init__:APP --reload
+__init__: Is the first file to be loaded in module, that contains the necessary
+code to be executed.
+
+APP: Instantiates the API.
+
+--reload: Activates debug mode for the API so that changes can be made in and
+ovserved in real time.
+"""
 
 from main import create_app
 

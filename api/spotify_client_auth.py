@@ -1,4 +1,6 @@
-import json
+"""Spotify client authorizations."""
+
+# import json
 import base64
 import datetime
 from os import getenv
@@ -17,6 +19,8 @@ scope = 'user-library-read user-top-read playlist-modify-public'
 
 
 class SpotifyClientAuth():
+    """Spot client auth class."""
+
     access_token = None
     access_token_expires = datetime.datetime.now()
     access_token_did_expire = True
@@ -26,19 +30,20 @@ class SpotifyClientAuth():
     SPOTIFY_CLIENT_SECRET = None
     token_url = 'https://accounts.spotify.com/api/token'
 
-    def __init__(self,
-                 client_id=SPOTIFY_CLIENT_ID,
-                 client_secret=SPOTIFY_CLIENT_SECRET,
-                 *args,
-                 **kwargs):
+    def __init__(
+            self,
+            client_id=SPOTIFY_CLIENT_ID,
+            client_secret=SPOTIFY_CLIENT_SECRET,
+            *args,
+            **kwargs
+                ):
+        """Initiate class vars."""
         super().__init__(*args, **kwargs)
         self.client_id = SPOTIFY_CLIENT_ID
         self.client_secret = SPOTIFY_CLIENT_SECRET
 
     def get_client_credentials(self):
-        '''
-        Returns a base64 encoded string.
-        '''
+        """Return a base64 encoded string."""
         client_id = self.client_id
         client_secret = self.client_secret
         if client_id is None or client_secret is None:
@@ -48,12 +53,14 @@ class SpotifyClientAuth():
         return client_cred_b64.decode()
 
     def get_token_headers(self):
+        """Header for credentials."""
         client_creds_b64 = self.get_client_credentials()
         return {
             'Authorization': f'Basic {client_creds_b64}'
         }
 
     def get_token_data(self):
+        """User token info."""
         return {
             'grant_type': 'client_credentials'
         }

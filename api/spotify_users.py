@@ -66,7 +66,7 @@ class UserData:
         time: long term.
 
         Args:
-            token_info: JSON object containing access and refresh token
+            token_info: JSON or dict object containing access and refresh token
             information for the user
             user_id: Spotify ID as a string object
 
@@ -347,13 +347,14 @@ class CreatePlaylist:
         self.user = None
         self.cache_path = ('../.user_cache')
 
-    def create_playlist(self,
-                        user1_top_aud_feat,
-                        user2_top_aud_feat,
-                        spot_session,
-                        user_info,
-                        user2=None
-                        ):
+    def create_playlist(
+        self,
+        user1_top_aud_feat,
+        user2_top_aud_feat,
+        spot_session,
+        user_info,
+        user2=None
+                ):
         """Take the top 50 tracks for 2 users and generate a playlist_uri.
 
         Args:
