@@ -1,31 +1,31 @@
+"""Module contains class and methods for user analysis, DB updates."""
+
 # imports
-import sys
-import json
 import random
 from os import getenv
 
 import spotipy
-import psycopg2
-import numpy as np
+# import psycopg2
+# import numpy as np
 import pandas as pd
-import spotipy.util as util
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
-from json.decoder import JSONDecodeError
-from sqlalchemy import create_engine, update
+# from json.decoder import JSONDecodeError
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
+# from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
 # use in production
 # import api.models.my_db
-# from api.models.my_db import *
+from api.models.my_db import User, Tokens, Tracks, UserPlaylist
 
 # use in jupyter
-import models.my_db
-from models.my_db import *
+# import models.my_db
+# from models.my_db import *
 
 
 class UserData:
+    """I am so tired, and need a job."""
 
     spot_creds = None     # Gathers credentials for song data
     spot_session = None   # Starts a spotify session
@@ -34,7 +34,7 @@ class UserData:
     refresh_token = None  # Obtained from accs_token from client creds
 
     def __init__(self):
-
+        """Initiate class vars."""
         load_dotenv()
 
         # Spot Creds/Auth
@@ -58,28 +58,31 @@ class UserData:
                                 )
         self.base = declarative_base()
 
-    def get_user_top_trx(self, token_info: str, user_id: str):
-        """Fetches user top track IDs from SpotifyAPI.
-        
+    def get_user_top_trx(self, token_info, user_id):
+        """Fetch user top track IDs from SpotifyAPI.
+
         Makes calls to the SpotifyAPI to gather a given user's top tracks
-        from the last 7 days (short term), 6 months (medium term), and all
-        time (long term).
+        from the last 7 days: short term, 6 months: medium term, and all
+        time: long term.
 
         Args:
-            token_info: JSON object containing access and refresh token information
-              for the user
+            token_info: JSON object containing access and refresh token
+            information for the user
             user_id: Spotify ID as a string object
 
         Returns:
-            A dict of key/value pairs contianing objects utilized in the following methods
-            
-            spot_cc: Spotify authentication object which will by used in other methods
-            session: DataBase session object that is can be used for other methods
-              running asyncronously
-            spot_session: Spotify API client that is used to obtain user and track data
+            A dict of key/value pairs contianing objects utilized in the
+            following methods
+            spot_cc: Spotify authentication object which will by used in
+            other methods
+            session: DataBase session object that is can be used for other
+            methods running asyncronously
+            spot_session: Spotify API client that is used to obtain user
+            and track data
             user_id: Integer value for the database ID
-            terms: Terms are broken down into three key/val pairs containing lists of strings
-              for short term, medium term, and long term
+            terms: Terms are broken down into three key/val pairs
+            containing lists of strings for short term, medium term, and
+            long term
         """
         client_secret = self.client_secret
         cache_path = self.cache_path
@@ -87,16 +90,15 @@ class UserData:
         user_id = user_id
         session = self.Session()
         redirect_uri = self.uri
-        engine = self.engine
+        # engine = self.engine
         scope = self.scope
-        Base = self.base
+        # Base = self.base
 
-        user = User()
+        # user = User()
         user_id_q = session.query(
                                 User
                                 ).filter(
-                                        User.spot_id ==
-                                        user_id
+                                        User.spot_id == user_id
                                         ).first()
 
         spot_cc = spotipy.oauth2.SpotifyOAuth(
@@ -111,13 +113,17 @@ class UserData:
         token_info = spot_cc.refresh_access_token(token_info['refresh_token'])
 
         # update token in DB
-        token = Tokens()
-        user_token_q = session.query(Tokens).filter(Tokens.user==user_id_q.id).first()
+        # token = Tokens()
+        user_token_q = session.query(
+                                    Tokens
+                                    ).filter(
+                                            Tokens.user == user_id_q.id
+                                            ).first()
         user_token_q.access_token = token_info['access_token']
         session.commit()
 
         spot_session = spotipy.Spotify(auth=token_info['access_token'])
-        
+
         terms = ['short_term', 'medium_term', 'long_term']
         trk_ids_lst = []
 
@@ -128,13 +134,13 @@ class UserData:
                                                 )
             globals()[term + '_trx'] = [top_trx[
                                             'items'
-                                                ][x][
-                                                    'id'
-                                                        ] for x in range(
-                                                                        len(
-                                                                            top_trx[
-                                                                                'items'
-                                                                                ]))]
+                                            ][x][
+                                                'id'
+                                                ] for x in range(
+                                                                len(
+                                                                    top_trx[
+                                                                        'items'
+                                                                        ]))]
             if len(globals()[term + '_trx']) != 0:
                 trk_ids_lst.append(globals()[term + '_trx'])
             else:
@@ -150,10 +156,10 @@ class UserData:
                 "long_term_trx": long_term_trx,
                 "track_ids": trk_ids_lst
                 }
-    
+
     def user_song_library(self, spot_session):
         """Gathers all the saved tracks for a given user.
-        
+
         Args:
             spot_session: Spotify object which will by used in other methods
 
@@ -162,8 +168,8 @@ class UserData:
         """
         lst = []
         offset = 0
-        result = spot.current_user_saved_tracks(offset=offset)
-        while result['next'] != None:
+        result = spot_session.current_user_saved_tracks(offset=offset)
+        while result['next'] is not None:
             result = spot_session.current_user_saved_tracks(offset=offset)
             lst.append(result['items'])
             offset += 20
@@ -174,45 +180,50 @@ class UserData:
                 trk_ids_lst.append(trk['track']['id'])
 
         return trk_ids_lst
-    
+
     def get_audio_features(self, track_ids, spot_session):
-        """Obtains song characteristics from the SpotifyAPI.
-        
-        The function takes in a list of song IDs as string values, and 
+        """Obtain song characteristics from the SpotifyAPI.
+
+        The function takes in a list of song IDs as string values, and
         obtains audio features for individual songs.
-        
+
         Args:
             track_ids: list of strings
             spot_session: Spotify object which will by used in other methods
 
         Returns:
-            audio_features: dictionary containing a list of audio features for each song ID provided
+            audio_features: Dictionary containing a list of audio features for
+            each song ID provided
         """
         offset = 50
         onset = 0
-        
+
         audio_feats = []
         while offset:
             if offset >= len(track_ids):
-                audio_feats.append(spot_session.audio_features(tracks=track_ids[onset:]))
+                audio_feats.append(spot_session.audio_features(
+                                                    tracks=track_ids[onset:]
+                                                    ))
                 break
-            audio_feats.append(spot_session.audio_features(tracks=track_ids[onset:offset]))
+            audio_feats.append(spot_session.audio_features(
+                                            tracks=track_ids[onset:offset]
+                                            ))
             onset += 50
             offset += 50
-        
+
         audio_features_lst = []
         for audio_feat in audio_feats:
             for feature in audio_feat:
                 audio_features_lst.append(feature)
 
         return audio_features_lst
-        
 
     def add_track_aud_feat(self, aud_feat, session):
-        """Adds track audio feature information to DB.
+        """Add track audio feature information to DB.
 
         Args:
-            aud_feat: list of dictionary key value pairs containing audio features for given tracks
+            aud_feat: list of dictionary key value pairs containing audio
+            features for given tracks
             session: DB connection object
 
         Returns:
@@ -250,22 +261,22 @@ class UserData:
         session.commit()
 
         return session
-    
+
     def get_playlists_trx(self, spot_session, user_id):
-        """Gets all user playlists tracks
+        """Get all user playlists tracks.
 
         Args:
             spot_session: Object from get_user_top_trs()
             user_id: String from get_user_top_trs() dict
 
         Returns:
-             all_tracks_ids: dictionary of tracks IDs obtained from user library
+            all_tracks_ids: dictionary of tracks IDs obtained from user
+            library
         """
         spot_session = spot_session
         user_id = user_id
 
         playlists = spot_session.user_playlists(user_id)
-
 
         if len(playlists['items']) == 0:
             raise Exception('user has no playlists')
@@ -290,9 +301,8 @@ class UserData:
                 "all_tracks_ids": all_tracks_ids,
                 }
 
-
-    def add_playlist(self, paylist_uri, session, user_id):
-        """Adds newly created playlist to DB with current user.
+    def add_playlist(self, playlist_uri, session, user_id):
+        """Add newly created playlist to DB with current user.
 
         Args:
             playlist_uri: string of characters in the following form:
@@ -316,10 +326,13 @@ class UserData:
         session.commit()
 
         return None
-    
+
 
 class CreatePlaylist:
+    """Generate playlist of mutual interests for users."""
+
     def __init__(self):
+        """Initiate."""
         load_dotenv()
 
         # Spot Creds/Auth
@@ -341,17 +354,15 @@ class CreatePlaylist:
                         user_info,
                         user2=None
                         ):
-        """
-        This function will take the top 50 tracks for 2 users and generate a
-        playlist (uri) for the users to share.
+        """Take the top 50 tracks for 2 users and generate a playlist_uri.
 
         Args:
-            user1_top_aud_feat: Top 50 track audio features (dict)
-            user2_top_aud_feat: Top 50 track audio features (dict)
+            user1_top_aud_feat: Top 50 track audio features ~dict~
+            user2_top_aud_feat: Top 50 track audio features ~dict~
 
         Returns:
             uri: playlist containing a number of random tracks based on the
-              two user's playlists and libraries.
+            two user's playlists and libraries.
         """
         user1_top_aud_feat = user1_top_aud_feat
         user2_top_aud_feat = user2_top_aud_feat
@@ -362,8 +373,7 @@ class CreatePlaylist:
         if user2 is not None:
             playlist_name = f"Mine and {user2}'s music child"
         else:
-            playlist_name = f"{user_info['display_name']}'s lonely\
-                            playlist"
+            playlist_name = f"{user_info['display_name']}'s lonely playlist"
 
         user1_df = pd.DataFrame(user1_top_aud_feat)
         user2_df = pd.DataFrame(user2_top_aud_feat)

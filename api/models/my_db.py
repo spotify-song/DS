@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, backref
+from sqlalchemy.orm import sessionmaker, backref, relationship
 
 load_dotenv()
 
@@ -43,13 +43,16 @@ class User(Base):
     user_playlist = relationship('UserPlaylist', backref='user_id')
 
     def __repr__(self):
+        """Return style for User class."""
         return "<User(spot_id='%s', display_name='%s')>" % (
-                                                                self.spot_id,
-                                                                self.display_name
-                                                                )
+                                                            self.spot_id,
+                                                            self.display_name
+                                                            )
 
 
 class Tokens(Base):
+    """Token class for user tokens."""
+
     __tablename__ = 'track_token'
 
     id = Column(Integer, primary_key=True, index=True)
@@ -61,6 +64,7 @@ class Tokens(Base):
     user = Column(Integer, ForeignKey('user.id'))
 
     def __repr__(self):
+        """Return style for api."""
         return "<Tokens(\
                         id='%s',\
                         access_token='%s',\
@@ -80,6 +84,8 @@ class Tokens(Base):
 
 
 class Tracks(Base):
+    """Track class containing track audio data."""
+
     __tablename__ = 'tracks'
 
     id = Column(Integer, primary_key=True)
@@ -103,12 +109,13 @@ class Tracks(Base):
                                 uselist=False)
 
     def __repr__(self):
-        return "<Tracks Data(id='%s', danceability='%s', energy='%s', key='%s',\
-                            loudness='%s', mode='%s', speechiness='%s',\
-                            acousticness='%s', instrumentalness='%s',\
-                            liveness='%s', valence='%s', tempo='%s',\
-                            duration_ms='%s', time_signature='%s',\
-                            spot_id='%s')>" % (
+        """Return print style for track class."""
+        return "<Tracks Data(id='%s', danceability='%s', energy='%s',\
+                            key='%s', loudness='%s', mode='%s',\
+                            speechiness='%s', acousticness='%s',\
+                            instrumentalness='%s', liveness='%s',\
+                            valence='%s', tempo='%s', duration_ms='%s',\
+                            time_signature='%s', spot_id='%s')>" % (
                                                         self.id,
                                                         self.danceability,
                                                         self.energy,
@@ -128,20 +135,27 @@ class Tracks(Base):
 
 
 class UserPlaylist(Base):
-    '''When running this class, make sure to set the user_id arg to the
-        user object it corresponds to; same goes for the track_id arg
-        (note: track_id is diff from tracks_id) to the tracks object
-        user_id = User() object  to fill the u_id arg ForeignKey
-        track_id = Tracks() object  to fill the tracks_id arg ForeignKey'''
+    """Plalist class to store in DB.
+
+    When running this class, make sure to set the user_id arg to the
+    user object it corresponds to; same goes for the track_id arg
+    (note: track_id is diff from tracks_id) to the tracks object
+    user_id = User() object  to fill the u_id arg ForeignKey
+    track_id = Tracks() object  to fill the tracks_id arg ForeignKey.
+    """
 
     __tablename__ = 'user_playlist'
 
     id = Column(Integer, primary_key=True, index=True)
-    u_id = Column(Integer, ForeignKey('user.id'))                          # User_ID
-    tracks_id = Column(Integer, ForeignKey('tracks.id'), nullable=True)    # Track_ID
-    uri = Column(String, nullable=True)                                    # Playlist_URI
+    u_id = Column(Integer, ForeignKey('user.id'))  # User_ID
+    tracks_id = Column(
+                    Integer,
+                    ForeignKey('tracks.id'),
+                    nullable=True)  # Track_ID
+    uri = Column(String, nullable=True)  # Playlist_URI
 
     def __repr__(self):
+        """Return style for playlist class."""
         return "<User Playlist(id='%s',\
                                 u_id='%s',\
                                 tracks_id='%s',\
