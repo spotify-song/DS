@@ -5,15 +5,15 @@ import random
 from os import getenv
 
 import spotipy
-# import psycopg2
-# import numpy as np
+import psycopg2
+import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
-# from json.decoder import JSONDecodeError
+from json.decoder import JSONDecodeError
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-# from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
+from spotipy.oauth2 import SpotifyOAuth
 
 # use in production
 # import api.models.my_db
@@ -58,7 +58,7 @@ class UserData:
                                 )
         self.base = declarative_base()
 
-    def get_user_top_trx(self, token_info, user_id):
+    def get_user_top_trx(self, refresh_token, user_id):
         """Fetch user top track IDs from SpotifyAPI.
 
         Makes calls to the SpotifyAPI to gather a given user's top tracks
@@ -79,7 +79,7 @@ class UserData:
             methods running asyncronously
             spot_session: Spotify API client that is used to obtain user
             and track data
-            user_id: Integer value for the database ID
+            user_id: String value for the database ID
             terms: Terms are broken down into three key/val pairs
             containing lists of strings for short term, medium term, and
             long term
@@ -90,27 +90,25 @@ class UserData:
         user_id = user_id
         session = self.Session()
         redirect_uri = self.uri
-        # engine = self.engine
+        engine = self.engine
         scope = self.scope
-        # Base = self.base
+        Base = self.base
 
-        # user = User()
         user_id_q = session.query(
                                 User
                                 ).filter(
                                         User.spot_id == user_id
                                         ).first()
 
-        spot_cc = spotipy.oauth2.SpotifyOAuth(
-                                        username=user_id_q.display_name,
-                                        client_id=client_id,
-                                        client_secret=client_secret,
-                                        cache_path=cache_path,
-                                        scope=scope,
-                                        redirect_uri=redirect_uri,
-                                        )
-
-        token_info = spot_cc.refresh_access_token(token_info['refresh_token'])
+        spot_cc = SpotifyOAuth(
+                            username=user_id_q.display_name,
+                            client_id=client_id,
+                            client_secret=client_secret,
+                            cache_path=cache_path,
+                            scope=scope,
+                            redirect_uri=redirect_uri
+                            )
+        token_info = spot_cc.refresh_access_token(refresh_token)
 
         # update token in DB
         # token = Tokens()
@@ -150,7 +148,7 @@ class UserData:
                 "spot_cc": spot_cc,
                 "session": session,
                 "spot_session": spot_session,
-                "user_id": user_id_q.id,
+                "Spotify_ID": user_id_q.display_name,
                 "short_term_trx": short_term_trx,
                 "medium_term_trx": medium_term_trx,
                 "long_term_trx": long_term_trx,

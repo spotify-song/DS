@@ -1,23 +1,23 @@
 """Model that interacts with the app generated in main."""
 
 import logging
-# import random
-# import os
-# from os import getenv
-# from dotenv import load_dotenv
+import random
+import os
+from os import getenv
+from dotenv import load_dotenv
 
+import urllib.parse
 from fastapi import APIRouter
-# import pandas as pd
-from pydantic import BaseModel, Field
-# , validator
+import pandas as pd
+from pydantic import BaseModel, Field, validator
 from typing import Dict
 from sqlalchemy import create_engine
 
 
 import sys
 sys.path.insert(0, '../')
-# from api.models.my_db import User, Tokens, Tracks, UserPlaylist
-# from api.spotify_users import UserData, CreatePlaylist
+from api.models.my_db import User, Tokens, Tracks, UserPlaylist
+from api.spotify_users import UserData, CreatePlaylist
 
 
 log = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class UserToken(BaseModel):
 
 # route to get user IDs
 @router.post('/users/{token_info,user_id}')
-async def users(token_info, user_id: str):
+async def users(refresh_token, user_id):
     """Take token_info dict, and a user_id.
 
     ### Path Parameter
@@ -57,10 +57,12 @@ async def users(token_info, user_id: str):
     ### Response
     'playlist_uri': string of alphanumeric values that generate a playlist
     """
-    return {
-            f"Takes all of the songs from {user_id} user and updates the\
-            database"
-            }
+    user_dude = UserData()
+    token_things = user_dude.get_user_top_trx(
+                                            refresh_token=refresh_token,
+                                            user_id=user_id
+                                            )
+    return token_things['Spotify_ID']
 
 
 @router.post('/uri/{playlistname}')
