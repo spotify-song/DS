@@ -25,12 +25,13 @@ log = logging.getLogger(__name__)
 
 router = APIRouter()
 
+user_dude = UserData()
+
 
 class Users(BaseModel):
     """User ID."""
 
     user_id_1: str = Field(..., example='avargas-274')
-    # user_id_2: str = Field(..., exmaple='spotify')
 
 
 class UserToken(BaseModel):
@@ -46,25 +47,59 @@ class UserToken(BaseModel):
                                         })
 
 
-# route to get user IDs
-@router.post('/users/{token_info,user_id}')
+# route updates user data
+@router.post('/add_or_update_user_data/{token_info,user_id}')
 async def users(refresh_token, user_id):
-    """Take token_info dict, and a user_id.
+    """Update user track and token info.
 
     ### Path Parameter
-    'playlist_uri':  list of strings of IDs corresponding the user profiles
+    'token_info': provide the API path paramter only the string of alphanumeric
+    values, and nothing more.
+
+    'user_id': The API requires the user_id parameter in order to obtain
+    pertinant data for analysis.
 
     ### Response
-    'playlist_uri': string of alphanumeric values that generate a playlist
+    'NA': still undefined, but will be determined shortly
     """
-    user_dude = UserData()
+    # gather's user token and pertinant info
     token_things = user_dude.get_user_top_trx(
                                             refresh_token=refresh_token,
                                             user_id=user_id
                                             )
-    return token_things['Spotify_ID']
+    artists_i_follow = token_things['spot_session'].current_user_followed_artists()
+    # user song library list
+    user_lib_tracks = user_dude.user_song_library(token_things['spot_session'])
+    playlist_tracks = user_dude.get_playlists_trx(
+                                                token_things['spot_session'],
+                                                user_id=user_id
+                                                )
+    new_track_list = user_lib_tracks + playlist_tracks
+
+    # track features gathered
+    track_features = user_dude.get_audio_features(
+                                                new_track_list,
+                                                token_things['spot_session']
+                                                )
+    track_table_update = user_dude.add_track_aud_feat(
+                                                    track_features,
+                                                    token_things['session']
+                                                    )
+
+    return {
+            "all_user_songs": new_track_list,
+            "Number of tracks": len(new_track_list),
+            }
 
 
+# generates user visuals and stats
+@router.post('/user_stats/{user_id}')
+async def stats(user_id):
+    """Generate user statistics and visualizations."""
+    return {f"{user_id}'s stats go here"}
+
+
+# Generates user playlist
 @router.post('/uri/{playlistname}')
 async def auth(playlistname):
     """Return the playlist uri generated from the given users.

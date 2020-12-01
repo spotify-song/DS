@@ -5,8 +5,8 @@ import random
 from os import getenv
 
 import spotipy
-import psycopg2
-import numpy as np
+# import psycopg2
+# import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
@@ -114,9 +114,9 @@ class UserData:
         # token = Tokens()
         user_token_q = session.query(
                                     Tokens
-                                    ).filter(
-                                            Tokens.user == user_id_q.id
-                                            ).first()
+                                        ).filter(
+                                                Tokens.user == user_id_q.id
+                                                ).first()
         user_token_q.access_token = token_info['access_token']
         session.commit()
 
@@ -295,9 +295,7 @@ class UserData:
                     continue
                 all_tracks_ids.append(trx['track']['id'])
 
-        return {
-                "all_tracks_ids": all_tracks_ids,
-                }
+        return all_tracks_ids
 
     def add_playlist(self, playlist_uri, session, user_id):
         """Add newly created playlist to DB with current user.
