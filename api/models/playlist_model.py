@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 
 router = APIRouter()
 
-user_dude = UserData()
+user_person = UserData()
 
 
 class Users(BaseModel):
@@ -62,34 +62,35 @@ async def users(refresh_token, user_id):
     ### Response
     'NA': still undefined, but will be determined shortly
     """
-    # gather's user token and pertinant info
-    token_things = user_dude.get_user_top_trx(
+    # generates spot_cc, db session, spot_session, and user Spotify_ID
+    user_data = user_person.get_user_top_trx(
                                             refresh_token=refresh_token,
                                             user_id=user_id
                                             )
-    artists_i_follow = token_things['spot_session'].current_user_followed_artists()
     # user song library list
-    user_lib_tracks = user_dude.user_song_library(token_things['spot_session'])
-    playlist_tracks = user_dude.get_playlists_trx(
-                                                token_things['spot_session'],
+    user_lib_tracks = user_person.user_song_library(
+                                                user_data['spot_session']
+                                                )
+    user_playlist_tracks = user_person.get_playlists_trx(
+                                                user_data['spot_session'],
                                                 user_id=user_id
                                                 )
-    new_track_list = user_lib_tracks + playlist_tracks
+    total_tracks_list = user_lib_tracks + user_playlist_tracks
 
     # track features gathered
-    track_features = user_dude.get_audio_features(
-                                                new_track_list,
-                                                token_things['spot_session']
+    track_features = user_person.get_audio_features(
+                                                total_tracks_list,
+                                                user_data['spot_session']
                                                 )
-    track_table_update = user_dude.add_track_aud_feat(
+    track_table_update = user_person.track_db_update(
                                                     track_features,
-                                                    token_things['session']
+                                                    user_data['session']
                                                     )
 
     return {
-            "all_user_songs": new_track_list,
+            "all_user_songs": total_tracks_list,
             "Number of tracks": len(new_track_list),
-            }
+        }
 
 
 # generates user visuals and stats
