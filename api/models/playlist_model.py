@@ -48,12 +48,12 @@ class UserToken(BaseModel):
 
 
 # route updates user data
-@router.post('/add_or_update_user_data/{token_info,user_id}')
+@router.post('/add_or_update_user_data/{refresh_token,user_id}')
 async def users(refresh_token, user_id):
     """Update user track and token info.
 
     ### Path Parameter
-    'token_info': provide the API path paramter only the string of alphanumeric
+    'refresh_token': provide the API path paramter only the string of alphanumeric
     values, and nothing more.
 
     'user_id': The API requires the user_id parameter in order to obtain
@@ -63,10 +63,10 @@ async def users(refresh_token, user_id):
     'NA': still undefined, but will be determined shortly
     """
     # generates spot_cc, db session, spot_session, and user Spotify_ID
-    user_data = user_person.get_user_top_trx(
-                                            refresh_token=refresh_token,
-                                            user_id=user_id
-                                            )
+    user_data = user_person.add_update_user(
+                                        refresh_token=refresh_token,
+                                        user_id=user_id
+                                        )
     # user song library list
     user_lib_tracks = user_person.user_song_library(
                                                 user_data['spot_session']
@@ -89,15 +89,31 @@ async def users(refresh_token, user_id):
 
     return {
             "all_user_songs": total_tracks_list,
-            "Number of tracks": len(new_track_list),
+            "Number of tracks": len(total_tracks_list),
         }
 
 
+# User overall stats
+@router.post('/overall_stats/{user_id}')
+async def overall_stats(user_id):
+    """Stats based on user's top listening history."""
+    return {f"Supposed to return {user_id}'s top stats of all time."}
+
+
 # generates user visuals and stats
-@router.post('/user_stats/{user_id}')
+@router.post('/user_top_track_stats/{user_id}')
 async def stats(user_id):
     """Generate user statistics and visualizations."""
     return {f"{user_id}'s stats go here"}
+
+
+@router.post('/users_compatability_score/{user_id_1,user_id_2}')
+async def compatabilities(user_id_1, user_id_2):
+    """Compatability scores are generated for 2 users given their music tastes.
+
+    The compatabilities are generated based on the statistics from the user's
+    libraries, genres and other music listening tendencies.
+    """
 
 
 # Generates user playlist

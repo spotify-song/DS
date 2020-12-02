@@ -81,14 +81,13 @@ class UserData:
         client_secret = self.client_secret
         cache_path = self.cache_path
         client_id = self.client_id
-        user_id = user_id
-        session = self.Session()
+        db_session = self.Session()
         redirect_uri = self.uri
         engine = self.engine
         scope = self.scope
         Base = self.base
 
-        user_id_q = session.query(
+        user_id_q = db_session.query(
                                 User
                                 ).filter(
                                         User.spot_id == user_id
@@ -106,18 +105,18 @@ class UserData:
 
         # update token in DB
         # token = Tokens()
-        user_token_q = session.query(
-                                    Tokens
-                                        ).filter(
-                                                Tokens.user == user_id_q.id
-                                                ).first()
+        # user_token_q = session.query(
+        #                             Tokens
+        #                                 ).filter(
+        #                                         Tokens.user == user_id_q.id
+        #                                         ).first()
         # user_token_q.access_token = token_info['access_token']
         # session.commit()
 
         spot_session = spotipy.Spotify(auth=token_info['access_token'])
         return {
                 "spot_cc": spot_cc,
-                "session": session,
+                "db_session": db_session,
                 "spot_session": spot_session,
                 "Spotify_ID": user_id_q.display_name,
             }
@@ -268,7 +267,7 @@ class UserData:
 
         return audio_features_lst
 
-    def track_db_update(self, aud_feat, session):
+    def track_db_update(self, aud_feat, db_session):
         """Add track audio feature information to DB.
 
         Args:
@@ -282,7 +281,7 @@ class UserData:
         """
         trx = []
         for k, v in enumerate(aud_feat):
-            trk_sesh = session.query(
+            trk_sesh = db_session.query(
                                     Tracks
                                     ).filter(
                                             Tracks.spot_id == v['id']
@@ -307,12 +306,12 @@ class UserData:
                                         )
             trx.append(globals()['trk_' + str(k)])
 
-        session.add_all(trx)
-        session.commit()
+        db_session.add_all(trx)
+        db_session.commit()
 
-        return session
+        return db_session
 
-    def add_playlist(self, playlist_uri, session, user_id):
+    def add_playlist(self, playlist_uri, db_session, user_id):
         """Add newly created playlist to DB with current user.
 
         Args:
@@ -324,17 +323,13 @@ class UserData:
         Returns:
             Updates playlist DB
         """
-        user_id = user_id
-        session = session
-        playlist_uri = playlist_uri
-
         playlist = UserPlaylist(
                             uesr_id=user_id,
                             user=playlist_uri,
                             tracks_id=None
                             )
-        session.add(playlist)
-        session.commit()
+        db_session.add(playlist)
+        db_session.commit()
 
         return None
 
