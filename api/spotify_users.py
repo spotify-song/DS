@@ -16,12 +16,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from spotipy.oauth2 import SpotifyOAuth
 
 # use in production
-# import api.models.my_db
-from api.models.my_db import User, Tokens, Tracks, UserPlaylist
+# import api.models.db
+from api.models.db import User, Tokens, Tracks, UserPlaylist
 
 # use in jupyter
-# import models.my_db
-# from models.my_db import *
+# import models.db
+# from models.db import *
 
 
 class UserData:

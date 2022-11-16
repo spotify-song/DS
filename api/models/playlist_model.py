@@ -16,7 +16,7 @@ from sqlalchemy import create_engine
 
 import sys
 sys.path.insert(0, '../')
-from api.models.my_db import User, Tokens, Tracks, UserPlaylist
+from api.models.db import User, Tokens, Tracks, UserPlaylist
 from api.spotify_users import UserData, CreatePlaylist
 
 
